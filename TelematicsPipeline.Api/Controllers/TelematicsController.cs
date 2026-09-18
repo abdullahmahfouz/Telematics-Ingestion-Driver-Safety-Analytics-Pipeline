@@ -37,6 +37,13 @@ public sealed class TelematicsController(
                 record.DeviceId, record.Timestamp, record.AccelerationXG);
         }
 
+        if (HarshCorneringDetector.IsHarshCornering(record))
+        {
+            logger.LogWarning(
+                "Harsh cornering detected for {DeviceId} @ {Timestamp:O}: {AccelerationYG}g",
+                record.DeviceId, record.Timestamp, record.AccelerationYG);
+        }
+
         return Accepted(record);
     }
 
