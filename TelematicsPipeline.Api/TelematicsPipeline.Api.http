@@ -1,0 +1,24 @@
+@TelematicsPipeline.Api_HostAddress = http://localhost:5231
+
+POST {{TelematicsPipeline.Api_HostAddress}}/api/telematics/ingest
+Content-Type: application/json
+
+{
+  "deviceId": "b2A83F1",
+  "timestamp": "2026-09-18T13:42:01.000Z",
+  "latitude": 43.68655,
+  "longitude": -79.34518,
+  "speedKmh": 87.3,
+  "headingDegrees": 172.4,
+  "engineRpm": 2150,
+  "engineCoolantTempC": 91.5,
+  "fuelLevelPercent": 62.0,
+  "odometerKm": 84213.7,
+  "isIdling": false,
+  "isIgnitionOn": true,
+  "accelerationXG": 0.02,
+  "accelerationYG": -0.01,
+  "accelerationZG": 0.99
+}
+
+###
