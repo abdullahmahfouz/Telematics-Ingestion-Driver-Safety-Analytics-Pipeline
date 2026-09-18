@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using TelematicsPipeline.Api.Models;
+using TelematicsPipeline.Api.SafetyEngine;
 
 namespace TelematicsPipeline.Api.Controllers;
 
@@ -27,6 +28,13 @@ public sealed class TelematicsController : ControllerBase
         _logger.LogInformation(
             "Ingested {DeviceId} @ {Timestamp:O}: {SpeedKmh} km/h, idling={IsIdling}",
             record.DeviceId, record.Timestamp, record.SpeedKmh, record.IsIdling);
+
+        if (HarshBrakingDetector.IsHarshBraking(record))
+        {
+            _logger.LogWarning(
+                "Harsh braking detected for {DeviceId} @ {Timestamp:O}: {AccelerationXG}g",
+                record.DeviceId, record.Timestamp, record.AccelerationXG);
+        }
 
         return Accepted();
     }

@@ -22,3 +22,25 @@ Content-Type: application/json
 }
 
 ###
+
+# Harsh-braking scenario — accelerationXG is past the -0.4g threshold,
+# so the server log should print a "Harsh braking detected" warning.
+POST {{TelematicsPipeline.Api_HostAddress}}/api/telematics/ingest
+Content-Type: application/json
+
+{
+  "deviceId": "b2A83F1",
+  "timestamp": "2026-09-18T13:42:03.000Z",
+  "latitude": 43.68544,
+  "longitude": -79.34581,
+  "speedKmh": 66.3,
+  "headingDegrees": 174.0,
+  "odometerKm": 84214.1,
+  "isIdling": false,
+  "isIgnitionOn": true,
+  "accelerationXG": -0.62,
+  "accelerationYG": 0.08,
+  "accelerationZG": 0.97
+}
+
+###
