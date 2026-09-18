@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TelematicsPipeline.Api.Persistence;
+using TelematicsPipeline.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,8 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<TelematicsDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("TelematicsDb")));
+
+builder.Services.AddScoped<TelematicsQueryService>();
 
 var app = builder.Build();
 
