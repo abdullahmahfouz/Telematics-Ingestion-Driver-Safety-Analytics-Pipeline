@@ -9,6 +9,10 @@ namespace TelematicsPipeline.Api.Models;
 /// </summary>
 public sealed record TelematicsRecord
 {
+    /// <summary>Database-generated primary key. Ignored on incoming requests.</summary>
+    [JsonPropertyName("id")]
+    public long Id { get; init; }
+
     [Required]
     [StringLength(20, MinimumLength = 3)]
     [JsonPropertyName("deviceId")]
