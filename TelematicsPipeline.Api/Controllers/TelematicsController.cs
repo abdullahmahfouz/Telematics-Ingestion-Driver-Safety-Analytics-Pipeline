@@ -64,4 +64,13 @@ public sealed class TelematicsController(
         var count = await queryService.GetHarshBrakingEventCountAsync(deviceId, sinceHours);
         return Ok(new { deviceId, sinceHours, harshBrakingEventCount = count });
     }
+
+    /// <summary>Count of harsh-cornering events for one device within a lookback window.</summary>
+    [HttpGet("{deviceId}/harsh-cornering-count")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetHarshCorneringCount(string deviceId, [FromQuery] int sinceHours = 24)
+    {
+        var count = await queryService.GetHarshCorneringEventCountAsync(deviceId, sinceHours);
+        return Ok(new { deviceId, sinceHours, harshCorneringEventCount = count });
+    }
 }
