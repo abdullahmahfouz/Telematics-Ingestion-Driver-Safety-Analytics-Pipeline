@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using TelematicsPipeline.Api.Persistence;
 using TelematicsPipeline.Api.Services;
 
+const string DashboardCorsPolicy = "DashboardCorsPolicy";
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -15,6 +17,16 @@ builder.Services.AddDbContext<TelematicsDbContext>(options =>
 
 builder.Services.AddScoped<TelematicsQueryService>();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(DashboardCorsPolicy, policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -24,6 +36,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors(DashboardCorsPolicy);
 
 app.UseAuthorization();
 

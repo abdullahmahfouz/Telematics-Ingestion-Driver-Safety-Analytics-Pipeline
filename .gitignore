@@ -480,3 +480,11 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+.gstack/
+
+# Python / ai-assistant
+ai-assistant/.venv/
+ai-assistant/__pycache__/
+ai-assistant/**/__pycache__/
+ai-assistant/.env
+*.pyc
