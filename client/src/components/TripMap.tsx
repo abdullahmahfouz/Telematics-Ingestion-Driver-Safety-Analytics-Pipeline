@@ -67,7 +67,7 @@ export function TripMap({ records }: TripMapProps) {
           id: "trip-trail-line",
           type: "line",
           source: "trip-trail",
-          paint: { "line-color": themeColor("--accent"), "line-width": 3 },
+          paint: { "line-color": themeColor("--secondary"), "line-width": 3 },
         });
       }
     };

@@ -32,8 +32,8 @@ export function AssistantPanel({ deviceId, onSessionExpired, ref }: AssistantPan
   const [conversationId, setConversationId] = useState(() => crypto.randomUUID());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Same synchronous-guard pattern as App.tsx's sendTestReading: `disabled={loading}`
-  // alone has a race window between a fast click and React committing the re-render.
+  // Synchronous guard, checked before any state update: `disabled={loading}` alone
+  // has a race window between a fast click and React committing the re-render.
   const loadingRef = useRef(false);
 
   function startNewConversation() {

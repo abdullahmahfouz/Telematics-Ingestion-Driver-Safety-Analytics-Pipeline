@@ -24,21 +24,18 @@
   border-right: 1px solid var(--border);
 }
 
-/* Shared "accent-colored centered icon box" used by the sidebar mark and stat cards */
-.sidebar__mark,
-.stat-card__icon {
+/* Brand mark -- the one icon treatment besides primary buttons that keeps solid
+   --accent gold; stat-card icons get their own neutral/per-tone treatment below. */
+.sidebar__mark {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent-bg);
-  color: var(--accent);
-}
-
-.sidebar__mark {
   width: 36px;
   height: 36px;
   border-radius: 10px;
   margin-bottom: 12px;
+  background: var(--accent-bg);
+  color: var(--accent);
 }
 
 .sidebar__item {
@@ -208,25 +205,38 @@ button:disabled {
   gap: 12px;
 }
 
+/* Neutral by default -- plain dark surface, no colored border. The three harsh-event
+   tones get a left accent bar + tinted icon/value only, never a full-bleed colored
+   background -- that's reserved for genuinely critical states, not any non-zero count. */
 .stat-card {
-  padding: 20px;
+  padding: 20px 20px 20px 18px;
   border-radius: 14px;
   border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
   background: var(--surface);
 }
 
-.stat-card--warning {
-  border-color: var(--danger-border);
-  background: var(--danger-bg);
+.stat-card--braking {
+  border-left-color: var(--braking);
 }
 
-.stat-card--warning .stat-card__value,
-.stat-card--warning .stat-card__label {
-  color: var(--danger-text);
+.stat-card--cornering {
+  border-left-color: var(--cornering);
 }
 
-.stat-card--warning .stat-card__icon {
-  background: var(--danger-bg-strong);
+.stat-card--acceleration {
+  border-left-color: var(--danger-text);
+}
+
+.stat-card--braking .stat-card__value {
+  color: var(--braking);
+}
+
+.stat-card--cornering .stat-card__value {
+  color: var(--cornering);
+}
+
+.stat-card--acceleration .stat-card__value {
   color: var(--danger-text);
 }
 
@@ -235,6 +245,23 @@ button:disabled {
   height: 30px;
   border-radius: 8px;
   margin-bottom: 14px;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+}
+
+.stat-card--braking .stat-card__icon {
+  background: var(--braking-bg);
+  color: var(--braking);
+}
+
+.stat-card--cornering .stat-card__icon {
+  background: var(--cornering-bg);
+  color: var(--cornering);
+}
+
+.stat-card--acceleration .stat-card__icon {
+  background: var(--danger-bg-strong);
+  color: var(--danger-text);
 }
 
 .stat-card__value {
@@ -252,15 +279,6 @@ button:disabled {
   letter-spacing: 0.05em;
 }
 
-.test-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
 .dashboard__main {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
@@ -274,18 +292,30 @@ button:disabled {
   }
 }
 
+/* Shared frame for the map and table so the pair reads as one cohesive panel instead
+   of two loosely related elements. */
+.panel-card {
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.panel-card--scroll {
+  max-height: 440px;
+  overflow-y: auto;
+}
+
+.panel-card .empty-state {
+  padding: 20px;
+}
+
 .trip-map {
   height: 440px;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid var(--border);
 }
 
 .map-placeholder {
   height: 440px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: var(--surface);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -301,10 +331,6 @@ button:disabled {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
 }
 
 .records-table th,
@@ -325,6 +351,16 @@ button:disabled {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   background: var(--surface-muted);
+  position: sticky;
+  top: 0;
+}
+
+.records-table tbody tr:nth-child(even) {
+  background: var(--surface-muted);
+}
+
+.records-table tbody tr:hover {
+  background: var(--surface-hover);
 }
 
 /* Time, Accel X, Accel Y -- numeric/meta columns read as data, not prose */
@@ -352,7 +388,17 @@ button:disabled {
   margin-right: 4px;
 }
 
-.flag--danger {
+.flag--braking {
+  background: var(--braking-bg);
+  color: var(--braking);
+}
+
+.flag--cornering {
+  background: var(--cornering-bg);
+  color: var(--cornering);
+}
+
+.flag--acceleration {
   background: var(--danger-bg);
   color: var(--danger-text);
 }
@@ -715,7 +761,8 @@ button:disabled {
 }
 
 .leaderboard__row--top1 {
-  background: var(--accent-bg);
+  border-left: 3px solid var(--secondary);
+  padding-left: 7px;
 }
 
 .leaderboard__rank {
@@ -725,7 +772,7 @@ button:disabled {
 }
 
 .leaderboard__row--top1 .leaderboard__rank {
-  color: var(--accent);
+  color: var(--secondary);
   font-weight: 600;
 }
 

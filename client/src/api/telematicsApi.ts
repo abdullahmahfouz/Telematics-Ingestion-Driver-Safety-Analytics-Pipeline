@@ -32,17 +32,3 @@ export function getHarshAccelerationCount(deviceId: string, sinceHours = 24): Pr
 export function getLeaderboard(limit = 10): Promise<LeaderboardResponse> {
   return getJson(`${API_BASE_URL}/leaderboard?limit=${limit}`);
 }
-
-export async function ingestRecord(record: Partial<TelematicsRecord>): Promise<TelematicsRecord> {
-  const response = await fetch(`${API_BASE_URL}/ingest`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify(record),
-  });
-  requireSession(response);
-  if (!response.ok) {
-    const problem = await response.json().catch(() => null);
-    throw new Error(`Ingest failed with status ${response.status}: ${JSON.stringify(problem)}`);
-  }
-  return response.json() as Promise<TelematicsRecord>;
-}

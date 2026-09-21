@@ -3,6 +3,7 @@
   --bg: #0a0a0c;
   --surface: #17181c;
   --surface-muted: #1e1f24;
+  --surface-hover: rgba(255, 255, 255, 0.05);
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.16);
 
@@ -11,11 +12,25 @@
   --text: #c7c7cc;
   --text-secondary: #86868c;
 
-  /* Single locked accent -- amber, used identically everywhere */
+  /* Primary accent -- amber, reserved for primary actions only (branding, submit
+     buttons). Never reused for map lines, data highlights, or severity coding below --
+     that's what made everything look randomly gold before. */
   --accent: #f2a93c;
   --accent-hover: #ffbe5c;
   --accent-bg: rgba(242, 169, 60, 0.12);
   --accent-contrast: #1a1200; /* text color for content sitting on --accent */
+
+  /* Secondary accent -- slate blue-gray, for map routes and data highlights that
+     aren't primary actions, so --accent doesn't get reused for everything. */
+  --secondary: #7c93b8;
+
+  /* Per-metric severity accents -- braking/cornering/acceleration each get their own
+     hue so the eye can tell them apart at a glance instead of one undifferentiated red
+     block. Acceleration reuses --danger below -- it's the most severe of the three. */
+  --braking: #f2c94c;
+  --braking-bg: rgba(242, 201, 76, 0.13);
+  --cornering: #f2924c;
+  --cornering-bg: rgba(242, 146, 76, 0.13);
 
   /* Semantic status -- desaturated enough to sit quietly on dark surfaces */
   --danger-bg: rgba(255, 92, 92, 0.14);
@@ -74,18 +89,3 @@ code {
   border: 1px solid var(--border);
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.spin {
-  animation: spin 700ms linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .spin {
-    animation: none;
-  }
-}

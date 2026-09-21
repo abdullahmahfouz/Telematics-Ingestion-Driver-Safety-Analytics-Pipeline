@@ -34,9 +34,9 @@ export function RecentRecordsTable({ records }: RecentRecordsTableProps) {
               <td>{record.accelerationXG?.toFixed(2) ?? "—"}</td>
               <td>{record.accelerationYG?.toFixed(2) ?? "—"}</td>
               <td>
-                {braking && <span className="flag flag--danger">harsh braking</span>}
-                {cornering && <span className="flag flag--danger">harsh cornering</span>}
-                {acceleration && <span className="flag flag--danger">harsh acceleration</span>}
+                {braking && <span className="flag flag--braking">harsh braking</span>}
+                {cornering && <span className="flag flag--cornering">harsh cornering</span>}
+                {acceleration && <span className="flag flag--acceleration">harsh acceleration</span>}
                 {!braking && !cornering && !acceleration && <span className="flag flag--ok">normal</span>}
               </td>
             </tr>

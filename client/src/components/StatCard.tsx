@@ -3,7 +3,7 @@ import type { Icon } from "@phosphor-icons/react";
 interface StatCardProps {
   label: string;
   value: number | string;
-  tone?: "neutral" | "warning";
+  tone?: "neutral" | "braking" | "cornering" | "acceleration";
   icon: Icon;
 }
 
