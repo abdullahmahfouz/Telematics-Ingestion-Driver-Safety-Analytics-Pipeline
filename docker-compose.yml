@@ -1,0 +1,92 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-telematics_pipeline}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: TelematicsPipeline.Api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Development (not the container-default Production) so the existing dev-only startup
+      # hook applies pending EF Core migrations and seeds the demo login automatically --
+      # same convenience `dotnet run` gives locally, no manual `createdb`/migrate step.
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__TelematicsDb: Host=postgres;Port=5432;Database=${POSTGRES_DB:-telematics_pipeline};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}
+      ConnectionStrings__Redis: redis:6379
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in .env -- see .env.example}
+      Jwt__Issuer: ${JWT_ISSUER:-telematics-api}
+      Jwt__Audience: ${JWT_AUDIENCE:-telematics-dashboard}
+    ports:
+      - "5231:5231"
+    restart: unless-stopped
+
+  ai-assistant:
+    build:
+      context: .
+      dockerfile: ai-assistant/Dockerfile
+    depends_on:
+      - api
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?set GEMINI_API_KEY in .env -- see .env.example}
+      JWT_SIGNING_KEY: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in .env -- see .env.example}
+      JWT_ISSUER: ${JWT_ISSUER:-telematics-api}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-telematics-dashboard}
+      # Reaches the API by its service name on the compose network, not localhost.
+      TELEMATICS_API_BASE_URL: http://api:5231/api/telematics
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    depends_on:
+      - api
+      - ai-assistant
+    environment:
+      # The dashboard runs in the *browser*, on the host -- not inside the compose network --
+      # so its calls to the API/assistant still go to localhost, same as running non-Dockerized.
+      VITE_MAPBOX_TOKEN: ${VITE_MAPBOX_TOKEN:?set VITE_MAPBOX_TOKEN in .env -- see .env.example}
+    ports:
+      - "5173:5173"
+
+  # Not started by `docker compose up` -- this is a one-off CLI tool, not a service. Run it
+  # on demand once the API is up, e.g.:
+  #   docker compose run --rm simulator --device b2A83F1 --api-key <key> --api http://api:5231/api/telematics
+  simulator:
+    build:
+      context: .
+      dockerfile: TelematicsPipeline.Simulator/Dockerfile
+    profiles: ["tools"]
+
+volumes:
+  postgres-data:

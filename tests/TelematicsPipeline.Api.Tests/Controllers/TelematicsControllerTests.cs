@@ -22,6 +22,7 @@ namespace TelematicsPipeline.Api.Tests.Controllers;
 /// enforcement (401 for a missing/invalid credential) is ASP.NET Core's own tested behavior,
 /// not application logic written here.
 /// </summary>
+[Collection("Shared Postgres/Redis")]
 public class TelematicsControllerTests : IAsyncLifetime
 {
     private const string TestConnectionString =

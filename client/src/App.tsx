@@ -1,61 +1,53 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "./App.css";
-import {
-  ChatCircleDots,
-  Gauge,
-  MagnifyingGlass,
-  MapTrifold,
-  SignOut,
-  SteeringWheel,
-  Trophy,
-  WarningCircle,
-  type Icon,
-} from "@phosphor-icons/react";
+import { Gauge, MagnifyingGlass, SignOut, SteeringWheel, WarningCircle } from "@phosphor-icons/react";
 import { StatCard } from "./components/StatCard";
 import { RecentRecordsTable } from "./components/RecentRecordsTable";
 import { TripMap } from "./components/TripMap";
 import { AssistantPanel } from "./components/AssistantPanel";
 import { ErrorBanner } from "./components/ErrorBanner";
 import { LoginScreen } from "./components/LoginScreen";
-import { Leaderboard } from "./components/Leaderboard";
 import {
+  getDevices,
   getHarshAccelerationCount,
   getHarshBrakingCount,
   getHarshCorneringCount,
-  getLeaderboard,
   getRecentRecords,
 } from "./api/telematicsApi";
 import { clearToken, getToken, SessionExpiredError } from "./api/authToken";
-import type { LeaderboardEntry, TelematicsRecord } from "./types/telematics";
+import type { TelematicsRecord } from "./types/telematics";
 
 function App() {
   const [deviceId, setDeviceId] = useState("b2A83F1");
   const [deviceIdInput, setDeviceIdInput] = useState("b2A83F1");
+  const [knownDeviceIds, setKnownDeviceIds] = useState<string[]>([]);
   const [records, setRecords] = useState<TelematicsRecord[]>([]);
   const [brakingCount, setBrakingCount] = useState<number | null>(null);
   const [corneringCount, setCorneringCount] = useState<number | null>(null);
   const [accelerationCount, setAccelerationCount] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [authed, setAuthed] = useState(() => !!getToken());
-  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
-  const [leaderboardAvailable, setLeaderboardAvailable] = useState(true);
 
   const handleSessionExpired = useCallback(() => {
     clearToken();
     setAuthed(false);
   }, []);
 
-  const overviewRef = useRef<HTMLElement>(null);
-  const leaderboardRef = useRef<HTMLElement>(null);
-  const mapRef = useRef<HTMLElement>(null);
-  const assistantRef = useRef<HTMLElement>(null);
+  function lookUpDevice(nextDeviceId: string) {
+    setDeviceIdInput(nextDeviceId);
+    setDeviceId(nextDeviceId);
+  }
 
-  const sections: { ref: React.RefObject<HTMLElement | null>; icon: Icon; label: string }[] = [
-    { ref: overviewRef, icon: Gauge, label: "Overview" },
-    { ref: leaderboardRef, icon: Trophy, label: "Safety leaderboard" },
-    { ref: mapRef, icon: MapTrifold, label: "Map & trips" },
-    { ref: assistantRef, icon: ChatCircleDots, label: "Safety assistant" },
-  ];
+  // Fleet-wide, not scoped to the selected device -- lets someone testing the dashboard see
+  // what device IDs actually have data instead of having to already know or guess one.
+  useEffect(() => {
+    if (!authed) return;
+    getDevices()
+      .then(setKnownDeviceIds)
+      .catch((err) => {
+        if (err instanceof SessionExpiredError) handleSessionExpired();
+      });
+  }, [authed, handleSessionExpired]);
 
   const refresh = useCallback(async () => {
     setError(null);
@@ -86,54 +78,16 @@ function App() {
     return () => clearInterval(intervalId);
   }, [refresh, authed]);
 
-  const refreshLeaderboard = useCallback(async () => {
-    try {
-      const { available, entries } = await getLeaderboard(10);
-      setLeaderboardAvailable(available);
-      setLeaderboardEntries(entries);
-    } catch (err) {
-      if (err instanceof SessionExpiredError) {
-        handleSessionExpired();
-      }
-      // A leaderboard fetch failure otherwise isn't surfaced as a page-level error --
-      // it's a secondary panel, and the main refresh() already reports connectivity issues.
-    }
-  }, [handleSessionExpired]);
-
-  // Fleet-wide, not scoped to the selected device, so this doesn't depend on deviceId
-  // and shouldn't re-fetch every time someone looks up a different device.
-  useEffect(() => {
-    if (!authed) return;
-    refreshLeaderboard();
-    const intervalId = setInterval(refreshLeaderboard, 5000);
-    return () => clearInterval(intervalId);
-  }, [refreshLeaderboard, authed]);
-
-  function scrollTo(ref: React.RefObject<HTMLElement | null>) {
-    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
   if (!authed) {
     return <LoginScreen onLoggedIn={() => setAuthed(true)} />;
   }
 
   return (
     <div className="app-shell">
-      <nav className="sidebar" aria-label="Sections">
+      <nav className="sidebar" aria-label="Navigation">
         <div className="sidebar__mark" aria-hidden="true">
           <SteeringWheel size={20} weight="bold" />
         </div>
-        {sections.map(({ ref, icon: SectionIcon, label }) => (
-          <button
-            key={label}
-            type="button"
-            className="sidebar__item"
-            title={label}
-            onClick={() => scrollTo(ref)}
-          >
-            <SectionIcon size={20} />
-          </button>
-        ))}
         <button
           type="button"
           className="sidebar__item sidebar__item--logout"
@@ -145,7 +99,7 @@ function App() {
       </nav>
 
       <div className="dashboard">
-        <header className="dashboard__header" ref={overviewRef}>
+        <header className="dashboard__header">
           <div className="dashboard__title">
             <h1>Driver safety dashboard</h1>
             <span className={`status-pill ${error ? "status-pill--offline" : "status-pill--live"}`}>
@@ -177,44 +131,61 @@ function App() {
 
         <p className="scope-note">
           Showing data for <code>{deviceId}</code> only — the readings, stats, map and table below all
-          scope to this one device. Look up a different device above to switch. The leaderboard further
-          down is the only section that spans every device.
+          scope to this one device.
         </p>
 
-        <section className="stat-row">
-          <StatCard label="Readings loaded" value={records.length} icon={Gauge} />
-          <StatCard
-            label="Harsh braking (24h)"
-            value={brakingCount ?? "…"}
-            tone={brakingCount ? "braking" : "neutral"}
-            icon={WarningCircle}
-          />
-          <StatCard
-            label="Harsh cornering (24h)"
-            value={corneringCount ?? "…"}
-            tone={corneringCount ? "cornering" : "neutral"}
-            icon={WarningCircle}
-          />
-          <StatCard
-            label="Harsh acceleration (24h)"
-            value={accelerationCount ?? "…"}
-            tone={accelerationCount ? "acceleration" : "neutral"}
-            icon={WarningCircle}
-          />
-        </section>
-
-        <Leaderboard entries={leaderboardEntries} available={leaderboardAvailable} ref={leaderboardRef} />
-
-        <section className="dashboard__main" ref={mapRef}>
-          <div className="panel-card">
-            <TripMap records={records} />
+        {knownDeviceIds.length > 0 && (
+          <div className="device-chips">
+            <span className="device-chips__label">Known devices, for testing:</span>
+            {knownDeviceIds.map((id) => (
+              <button
+                key={id}
+                type="button"
+                className={`device-chip${id === deviceId ? " device-chip--active" : ""}`}
+                onClick={() => lookUpDevice(id)}
+              >
+                {id}
+              </button>
+            ))}
           </div>
-          <div className="panel-card panel-card--scroll">
-            <RecentRecordsTable records={records} />
-          </div>
-        </section>
+        )}
 
-        <AssistantPanel deviceId={deviceId} onSessionExpired={handleSessionExpired} ref={assistantRef} />
+        <div className="dashboard__body">
+          <div className="dashboard__content">
+            <section className="stat-row">
+              <StatCard label="Readings loaded" value={records.length} icon={Gauge} />
+              <StatCard
+                label="Harsh braking (24h)"
+                value={brakingCount ?? "…"}
+                tone={brakingCount ? "braking" : "neutral"}
+                icon={WarningCircle}
+              />
+              <StatCard
+                label="Harsh cornering (24h)"
+                value={corneringCount ?? "…"}
+                tone={corneringCount ? "cornering" : "neutral"}
+                icon={WarningCircle}
+              />
+              <StatCard
+                label="Harsh acceleration (24h)"
+                value={accelerationCount ?? "…"}
+                tone={accelerationCount ? "acceleration" : "neutral"}
+                icon={WarningCircle}
+              />
+            </section>
+
+            <section className="dashboard__main">
+              <div className="panel-card">
+                <TripMap records={records} />
+              </div>
+              <div className="panel-card panel-card--scroll">
+                <RecentRecordsTable records={records} />
+              </div>
+            </section>
+          </div>
+
+          <AssistantPanel deviceId={deviceId} onSessionExpired={handleSessionExpired} />
+        </div>
       </div>
     </div>
   );

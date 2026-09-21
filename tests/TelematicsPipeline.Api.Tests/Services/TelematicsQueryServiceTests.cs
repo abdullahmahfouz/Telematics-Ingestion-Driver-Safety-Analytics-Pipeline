@@ -11,6 +11,7 @@ namespace TelematicsPipeline.Api.Tests.Services;
 /// fake in-memory provider, so these tests exercise the same SQL translation path as production.
 /// Each test clears the table first so tests never see each other's data.
 /// </summary>
+[Collection("Shared Postgres/Redis")]
 public class TelematicsQueryServiceTests : IAsyncLifetime
 {
     private const string TestConnectionString =
@@ -161,5 +162,20 @@ public class TelematicsQueryServiceTests : IAsyncLifetime
         var counts = await _service.GetHarshEventCountsByDeviceAsync();
 
         Assert.False(counts.ContainsKey("clean-device"));
+    }
+
+    [Fact]
+    public async Task GetKnownDeviceIdsAsync_ReturnsEachDeviceOnce_MostRecentlyActiveFirst()
+    {
+        var now = DateTimeOffset.UtcNow;
+        _db.TelematicsRecords.AddRange(
+            MakeRecord("device-i", now.AddHours(-2)),
+            MakeRecord("device-i", now.AddHours(-1)), // device-i's most recent reading
+            MakeRecord("device-j", now)); // device-j is the most recently active overall
+        await _db.SaveChangesAsync();
+
+        var deviceIds = await _service.GetKnownDeviceIdsAsync();
+
+        Assert.Equal(["device-j", "device-i"], deviceIds);
     }
 }

@@ -1,0 +1,19 @@
+# All three services build from the repo root as context, so this one file covers them.
+**/bin/
+**/obj/
+**/node_modules/
+**/.venv/
+**/dist/
+.git/
+.claude/
+docs/
+*.md
+
+# Never bake personal secrets into an image layer -- these are passed as env vars instead.
+**/.env
+**/.env.local
+!**/.env.example
+
+.vs/
+.vscode/
+*.user

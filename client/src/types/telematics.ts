@@ -24,14 +24,3 @@ export interface HarshEventCount {
   harshCorneringEventCount?: number;
   harshAccelerationEventCount?: number;
 }
-
-export interface LeaderboardEntry {
-  rank: number;
-  deviceId: string;
-  harshEventCount: number;
-}
-
-export interface LeaderboardResponse {
-  available: boolean;
-  entries: LeaderboardEntry[];
-}

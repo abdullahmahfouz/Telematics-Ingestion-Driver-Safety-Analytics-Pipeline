@@ -14,6 +14,7 @@ namespace TelematicsPipeline.Api.Tests.Controllers;
 /// Runs against a real, dedicated Postgres database (telematics_pipeline_test), same as
 /// TelematicsQueryServiceTests, rather than a fake in-memory provider or mocked DbContext.
 /// </summary>
+[Collection("Shared Postgres/Redis")]
 public class AuthControllerTests : IAsyncLifetime
 {
     private const string TestConnectionString =

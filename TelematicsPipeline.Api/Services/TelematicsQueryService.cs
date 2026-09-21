@@ -85,6 +85,21 @@ public sealed class TelematicsQueryService(TelematicsDbContext db)
     }
 
     /// <summary>
+    /// Distinct device IDs that have ever sent a reading, most-recently-active first -- lets
+    /// the dashboard show what's actually available to look up instead of someone having to
+    /// already know or guess a valid device ID.
+    /// </summary>
+    public async Task<List<string>> GetKnownDeviceIdsAsync()
+    {
+        return await db.TelematicsRecords
+            .GroupBy(r => r.DeviceId)
+            .Select(g => new { DeviceId = g.Key, LastSeen = g.Max(r => r.Timestamp) })
+            .OrderByDescending(g => g.LastSeen)
+            .Select(g => g.DeviceId)
+            .ToListAsync();
+    }
+
+    /// <summary>
     /// All-time harsh-event totals per device, computed fresh from Postgres. Mirrors the
     /// per-reading accumulation done at ingest time (each of the three detectors that
     /// matches on a reading adds 1), so this can resync the Redis leaderboard -- the

@@ -22,6 +22,8 @@
   padding: 20px 0;
   background: var(--surface);
   border-right: 1px solid var(--border);
+  box-shadow: 1px 0 12px rgba(32, 29, 23, 0.04);
+  z-index: 1;
 }
 
 /* Brand mark -- the one icon treatment besides primary buttons that keeps solid
@@ -85,7 +87,8 @@
 }
 
 .dashboard__header h1 {
-  font-size: 22px;
+  font-size: 27px;
+  letter-spacing: -0.025em;
   margin: 0;
 }
 
@@ -126,7 +129,7 @@
 
 .device-lookup input {
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-h);
@@ -145,19 +148,21 @@ button {
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-h);
   font-family: var(--font-sans);
   font-size: 13px;
   cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+  box-shadow: 0 1px 2px rgba(32, 29, 23, 0.04);
+  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
 }
 
 button:hover:not(:disabled) {
   border-color: var(--border-strong);
   background: var(--surface-muted);
+  box-shadow: 0 2px 6px rgba(32, 29, 23, 0.06);
 }
 
 button:active:not(:disabled) {
@@ -176,12 +181,14 @@ button:disabled {
   border-color: var(--accent);
   color: var(--accent-contrast);
   font-weight: 500;
+  box-shadow: 0 4px 12px -2px rgba(226, 147, 58, 0.35);
 }
 
 .device-lookup button[type='submit']:hover:not(:disabled),
 .assistant-form button[type='submit']:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
+  box-shadow: 0 6px 16px -2px rgba(226, 147, 58, 0.45);
 }
 
 .banner {
@@ -199,33 +206,52 @@ button:disabled {
   color: var(--danger-text);
 }
 
+/* A single unified readout strip, not four identical bordered cards side by side --
+   that "three/four equal cards in a row" shape is the single most common templated
+   dashboard pattern there is. This reads more like an instrument cluster: one panel,
+   divided, each segment topped with a thin status-color bar instead of boxed in. */
 .stat-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-}
-
-/* Neutral by default -- plain dark surface, no colored border. The three harsh-event
-   tones get a left accent bar + tinted icon/value only, never a full-bleed colored
-   background -- that's reserved for genuinely critical states, not any non-zero count. */
-.stat-card {
-  padding: 20px 20px 20px 18px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--border);
   background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-panel);
+  overflow: hidden;
 }
 
-.stat-card--braking {
-  border-left-color: var(--braking);
+.stat-card {
+  position: relative;
+  padding: 22px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.stat-card--cornering {
-  border-left-color: var(--cornering);
+.stat-card + .stat-card {
+  border-left: 1px solid var(--border);
 }
 
-.stat-card--acceleration {
-  border-left-color: var(--danger-text);
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--border-strong);
+}
+
+.stat-card--braking::before {
+  background: var(--braking);
+}
+
+.stat-card--cornering::before {
+  background: var(--cornering);
+}
+
+.stat-card--acceleration::before {
+  background: var(--danger-text);
 }
 
 .stat-card--braking .stat-card__value {
@@ -240,50 +266,41 @@ button:disabled {
   color: var(--danger-text);
 }
 
-.stat-card__icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  margin-bottom: 14px;
-  background: var(--surface-muted);
+.stat-card__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
   color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-.stat-card--braking .stat-card__icon {
-  background: var(--braking-bg);
+.stat-card--braking .stat-card__label {
   color: var(--braking);
 }
 
-.stat-card--cornering .stat-card__icon {
-  background: var(--cornering-bg);
+.stat-card--cornering .stat-card__label {
   color: var(--cornering);
 }
 
-.stat-card--acceleration .stat-card__icon {
-  background: var(--danger-bg-strong);
+.stat-card--acceleration .stat-card__label {
   color: var(--danger-text);
 }
 
 .stat-card__value {
   font-family: var(--font-mono);
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1;
   color: var(--text-h);
-}
-
-.stat-card__label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .dashboard__main {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   gap: 20px;
-  scroll-margin-top: 24px;
 }
 
 @media (max-width: 860px) {
@@ -295,9 +312,10 @@ button:disabled {
 /* Shared frame for the map and table so the pair reads as one cohesive panel instead
    of two loosely related elements. */
 .panel-card {
-  border: 1px solid var(--border-strong);
-  border-radius: 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
   background: var(--surface);
+  box-shadow: var(--shadow-panel);
   overflow: hidden;
 }
 
@@ -410,13 +428,24 @@ button:disabled {
 
 .assistant-panel {
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 18px;
   background: var(--surface);
+  box-shadow: var(--shadow-panel);
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  scroll-margin-top: 24px;
+  position: sticky;
+  top: 28px;
+  max-height: calc(100svh - 56px);
+  overflow: hidden;
+}
+
+@media (max-width: 1100px) {
+  .assistant-panel {
+    position: static;
+    max-height: none;
+  }
 }
 
 .assistant-panel__header {
@@ -464,7 +493,8 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-height: 360px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -646,7 +676,8 @@ button:disabled {
   padding: 32px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 20px;
+  box-shadow: var(--shadow-panel);
   text-align: left;
 }
 
@@ -722,92 +753,62 @@ button:disabled {
   color: var(--text);
 }
 
-.leaderboard {
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface);
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  scroll-margin-top: 24px;
-}
-
-.leaderboard h2 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  margin: 0;
-  color: var(--accent);
-}
-
-.leaderboard__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.leaderboard__row {
-  display: grid;
-  grid-template-columns: 28px 1fr auto;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
-  border-radius: 8px;
-}
-
-.leaderboard__row--top1 {
-  border-left: 3px solid var(--secondary);
-  padding-left: 7px;
-}
-
-.leaderboard__rank {
-  font-family: var(--font-mono);
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-.leaderboard__row--top1 .leaderboard__rank {
-  color: var(--secondary);
-  font-weight: 600;
-}
-
-.leaderboard__device {
-  font-family: var(--font-mono);
-  color: var(--text-h);
-  font-size: 13px;
-}
-
-.leaderboard__count {
-  font-family: var(--font-mono);
-  color: var(--danger-text);
-  font-weight: 500;
-}
-
 .scope-note {
   font-size: 12px;
   color: var(--text-secondary);
   margin-top: -8px;
+  text-wrap: pretty;
 }
 
 .scope-note code {
   color: var(--text-h);
 }
 
-.leaderboard__header {
+/* ---- Known-device picker: what's actually available to look up, not a guessing game ---- */
+.device-chips {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
+  margin-top: -4px;
 }
 
-.leaderboard__scope {
-  font-size: 11px;
+.device-chips__label {
+  font-size: 12px;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  margin-right: 2px;
+}
+
+.device-chip {
+  border-radius: 9999px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 5px 12px;
+}
+
+.device-chip--active {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+
+/* ---- Two-column body: map/table/stats on the left, assistant pinned on the right ---- */
+.dashboard__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 20px;
+  align-items: start;
+}
+
+.dashboard__content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .dashboard__body {
+    grid-template-columns: 1fr;
+  }
 }

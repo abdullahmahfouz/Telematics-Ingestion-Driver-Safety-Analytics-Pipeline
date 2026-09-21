@@ -10,6 +10,7 @@ namespace TelematicsPipeline.Api.Tests.Caching;
 /// data the running app depends on. Using real Redis rather than a fake keeps the sorted-set
 /// semantics honest -- ordering, score accumulation and range reads are the whole point here.
 /// </summary>
+[Collection("Shared Postgres/Redis")]
 public class SafetyLeaderboardTests : IAsyncLifetime
 {
     private const string TestConnectionString = "localhost:6379,defaultDatabase=1,abortConnect=false";

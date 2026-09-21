@@ -1,50 +1,59 @@
 :root {
-  /* Dark cockpit surfaces */
-  --bg: #0a0a0c;
-  --surface: #17181c;
-  --surface-muted: #1e1f24;
-  --surface-hover: rgba(255, 255, 255, 0.05);
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.16);
+  /* Soft, warm-neutral surfaces -- not stark white, so cards read as material sitting
+     on a table rather than clinical panels on a blank canvas. */
+  --bg: #f4f3f0;
+  --surface: #ffffff;
+  --surface-muted: #f6f5f2;
+  --surface-hover: rgba(20, 18, 12, 0.035);
+  --border: rgba(20, 18, 12, 0.07);
+  --border-strong: rgba(20, 18, 12, 0.12);
 
-  /* Text -- never pure white, never pure black */
-  --text-h: #f5f5f4;
-  --text: #c7c7cc;
-  --text-secondary: #86868c;
+  /* Text -- warm near-black, never pure black */
+  --text-h: #201d17;
+  --text: #514c42;
+  --text-secondary: #8b8478;
 
   /* Primary accent -- amber, reserved for primary actions only (branding, submit
      buttons). Never reused for map lines, data highlights, or severity coding below --
      that's what made everything look randomly gold before. */
-  --accent: #f2a93c;
-  --accent-hover: #ffbe5c;
-  --accent-bg: rgba(242, 169, 60, 0.12);
+  --accent: #e2933a;
+  --accent-hover: #c97e29;
+  --accent-bg: rgba(226, 147, 58, 0.12);
   --accent-contrast: #1a1200; /* text color for content sitting on --accent */
 
-  /* Secondary accent -- slate blue-gray, for map routes and data highlights that
+  /* Secondary accent -- muted slate blue, for map routes and data highlights that
      aren't primary actions, so --accent doesn't get reused for everything. */
-  --secondary: #7c93b8;
+  --secondary: #5c7aa8;
 
   /* Per-metric severity accents -- braking/cornering/acceleration each get their own
      hue so the eye can tell them apart at a glance instead of one undifferentiated red
-     block. Acceleration reuses --danger below -- it's the most severe of the three. */
-  --braking: #f2c94c;
-  --braking-bg: rgba(242, 201, 76, 0.13);
-  --cornering: #f2924c;
-  --cornering-bg: rgba(242, 146, 76, 0.13);
+     block. Deeper/more saturated than a dark-mode palette needs, since these have to
+     hold contrast against a light surface, not glow against a black one. */
+  --braking: #b3790f;
+  --braking-bg: rgba(179, 121, 15, 0.11);
+  --cornering: #c15f21;
+  --cornering-bg: rgba(193, 95, 33, 0.11);
 
-  /* Semantic status -- desaturated enough to sit quietly on dark surfaces */
-  --danger-bg: rgba(255, 92, 92, 0.14);
-  --danger-bg-strong: rgba(255, 92, 92, 0.16);
-  --danger-border: rgba(255, 92, 92, 0.3);
-  --danger-text: #ff8585;
-  --success-bg: rgba(52, 211, 153, 0.14);
-  --success-text: #4ade9b;
+  /* Semantic status */
+  --danger-bg: rgba(214, 69, 69, 0.09);
+  --danger-bg-strong: rgba(214, 69, 69, 0.13);
+  --danger-border: rgba(214, 69, 69, 0.25);
+  --danger-text: #c23f3f;
+  --success-bg: rgba(43, 148, 100, 0.1);
+  --success-text: #237a54;
+
+  /* Panel depth -- soft, diffuse, neutral-tinted shadow. A flat bordered box with no
+     shadow is what makes a dashboard read as a template; real material has a shadow. */
+  --shadow-panel: 0 1px 2px rgba(32, 29, 23, 0.04), 0 4px 12px -4px rgba(32, 29, 23, 0.08),
+    0 16px 32px -16px rgba(32, 29, 23, 0.16);
+  --shadow-panel-hover: 0 1px 2px rgba(32, 29, 23, 0.04), 0 6px 16px -4px rgba(32, 29, 23, 0.1),
+    0 20px 40px -16px rgba(32, 29, 23, 0.2);
 
   --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
 
   font: 14px/1.6 var(--font-sans);
-  color-scheme: dark;
+  color-scheme: light;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;

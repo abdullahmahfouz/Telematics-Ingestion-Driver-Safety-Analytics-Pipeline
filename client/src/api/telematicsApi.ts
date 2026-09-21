@@ -1,4 +1,4 @@
-import type { HarshEventCount, LeaderboardResponse, TelematicsRecord } from "../types/telematics";
+import type { HarshEventCount, TelematicsRecord } from "../types/telematics";
 import { authHeaders, requireSession } from "./authToken";
 
 const API_BASE_URL = "http://localhost:5231/api/telematics";
@@ -10,6 +10,11 @@ async function getJson<T>(url: string): Promise<T> {
     throw new Error(`Request to ${url} failed with status ${response.status}`);
   }
   return response.json() as Promise<T>;
+}
+
+/** Device IDs that have ever sent a reading, most-recently-active first. */
+export function getDevices(): Promise<string[]> {
+  return getJson(`${API_BASE_URL}/devices`);
 }
 
 export function getRecentRecords(deviceId: string, limit = 10): Promise<TelematicsRecord[]> {
@@ -26,9 +31,4 @@ export function getHarshCorneringCount(deviceId: string, sinceHours = 24): Promi
 
 export function getHarshAccelerationCount(deviceId: string, sinceHours = 24): Promise<HarshEventCount> {
   return getJson(`${API_BASE_URL}/${deviceId}/harsh-acceleration-count?sinceHours=${sinceHours}`);
-}
-
-/** Fleet-wide ranking by harsh-event count -- not scoped to a single device. */
-export function getLeaderboard(limit = 10): Promise<LeaderboardResponse> {
-  return getJson(`${API_BASE_URL}/leaderboard?limit=${limit}`);
 }

@@ -79,6 +79,19 @@ public sealed class TelematicsController(
         return Accepted(record);
     }
 
+    /// <summary>
+    /// Distinct device IDs that have ever sent a reading, most-recently-active first -- lets
+    /// a caller discover what's actually available to look up.
+    /// </summary>
+    [HttpGet("devices")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDevices()
+    {
+        var deviceIds = await queryService.GetKnownDeviceIdsAsync();
+        return Ok(deviceIds);
+    }
+
     /// <summary>Most recent readings for one device, newest first.</summary>
     [HttpGet("{deviceId}/recent")]
     [Authorize]

@@ -10,11 +10,11 @@ interface StatCardProps {
 export function StatCard({ label, value, tone = "neutral", icon: IconComponent }: StatCardProps) {
   return (
     <div className={`stat-card stat-card--${tone}`}>
-      <div className="stat-card__icon">
-        <IconComponent size={18} weight="bold" />
+      <div className="stat-card__label">
+        <IconComponent size={13} weight="bold" />
+        {label}
       </div>
       <div className="stat-card__value">{value}</div>
-      <div className="stat-card__label">{label}</div>
     </div>
   );
 }
