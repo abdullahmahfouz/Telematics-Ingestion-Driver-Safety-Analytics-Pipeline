@@ -1,9 +1,11 @@
 import type { HarshEventCount, TelematicsRecord } from "../types/telematics";
+import { authHeaders, requireSession } from "./authToken";
 
 const API_BASE_URL = "http://localhost:5231/api/telematics";
 
 async function getJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
+  const response = await fetch(url, { headers: authHeaders() });
+  requireSession(response);
   if (!response.ok) {
     throw new Error(`Request to ${url} failed with status ${response.status}`);
   }
@@ -29,9 +31,10 @@ export function getHarshAccelerationCount(deviceId: string, sinceHours = 24): Pr
 export async function ingestRecord(record: Partial<TelematicsRecord>): Promise<TelematicsRecord> {
   const response = await fetch(`${API_BASE_URL}/ingest`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(record),
   });
+  requireSession(response);
   if (!response.ok) {
     const problem = await response.json().catch(() => null);
     throw new Error(`Ingest failed with status ${response.status}: ${JSON.stringify(problem)}`);

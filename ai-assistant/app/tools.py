@@ -79,24 +79,24 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
 ]
 
 
-async def call_tool(name: str, arguments: dict[str, Any]) -> str:
+async def call_tool(name: str, arguments: dict[str, Any], auth_token: str | None = None) -> str:
     """Executes one tool call and returns its result as a JSON string, ready to
     hand back to the model as a tool message."""
     if name == "get_recent_records":
         result = await telematics_client.get_recent_records(
-            device_id=arguments["device_id"], limit=arguments.get("limit", 10)
+            device_id=arguments["device_id"], limit=arguments.get("limit", 10), auth_token=auth_token
         )
     elif name == "get_harsh_braking_count":
         result = await telematics_client.get_harsh_braking_count(
-            device_id=arguments["device_id"], since_hours=arguments.get("since_hours", 24)
+            device_id=arguments["device_id"], since_hours=arguments.get("since_hours", 24), auth_token=auth_token
         )
     elif name == "get_harsh_cornering_count":
         result = await telematics_client.get_harsh_cornering_count(
-            device_id=arguments["device_id"], since_hours=arguments.get("since_hours", 24)
+            device_id=arguments["device_id"], since_hours=arguments.get("since_hours", 24), auth_token=auth_token
         )
     elif name == "get_harsh_acceleration_count":
         result = await telematics_client.get_harsh_acceleration_count(
-            device_id=arguments["device_id"], since_hours=arguments.get("since_hours", 24)
+            device_id=arguments["device_id"], since_hours=arguments.get("since_hours", 24), auth_token=auth_token
         )
     else:
         return json.dumps({"error": f"Unknown tool: {name}"})

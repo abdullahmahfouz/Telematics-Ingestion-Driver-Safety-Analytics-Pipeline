@@ -9,5 +9,11 @@ class Settings(BaseSettings):
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
     telematics_api_base_url: str = "http://localhost:5231/api/telematics"
 
+    # Must match the .NET API's Jwt:SigningKey/Issuer/Audience -- both services validate
+    # the same tokens issued by POST /api/auth/login rather than keeping separate identities.
+    jwt_signing_key: str
+    jwt_issuer: str = "telematics-api"
+    jwt_audience: str = "telematics-dashboard"
+
 
 settings = Settings()

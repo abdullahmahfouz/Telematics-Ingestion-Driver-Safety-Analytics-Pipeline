@@ -6,6 +6,7 @@ import {
   Gauge,
   MagnifyingGlass,
   MapTrifold,
+  SignOut,
   SteeringWheel,
   WarningCircle,
   type Icon,
@@ -15,6 +16,7 @@ import { RecentRecordsTable } from "./components/RecentRecordsTable";
 import { TripMap } from "./components/TripMap";
 import { AssistantPanel } from "./components/AssistantPanel";
 import { ErrorBanner } from "./components/ErrorBanner";
+import { LoginScreen } from "./components/LoginScreen";
 import {
   getHarshAccelerationCount,
   getHarshBrakingCount,
@@ -22,6 +24,7 @@ import {
   getRecentRecords,
   ingestRecord,
 } from "./api/telematicsApi";
+import { clearToken, getToken, SessionExpiredError } from "./api/authToken";
 import type { TelematicsRecord } from "./types/telematics";
 
 const BASE_LATITUDE = 43.685;
@@ -41,6 +44,12 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [authed, setAuthed] = useState(() => !!getToken());
+
+  const handleSessionExpired = useCallback(() => {
+    clearToken();
+    setAuthed(false);
+  }, []);
 
   const overviewRef = useRef<HTMLElement>(null);
   const mapRef = useRef<HTMLElement>(null);
@@ -66,18 +75,23 @@ function App() {
       setBrakingCount(braking.harshBrakingEventCount ?? 0);
       setCorneringCount(cornering.harshCorneringEventCount ?? 0);
       setAccelerationCount(acceleration.harshAccelerationEventCount ?? 0);
-    } catch {
+    } catch (err) {
+      if (err instanceof SessionExpiredError) {
+        handleSessionExpired();
+        return;
+      }
       setError("Could not reach the API. Is it running at http://localhost:5231?");
     } finally {
       setLoading(false);
     }
-  }, [deviceId]);
+  }, [deviceId, handleSessionExpired]);
 
   useEffect(() => {
+    if (!authed) return;
     refresh();
     const intervalId = setInterval(refresh, 5000);
     return () => clearInterval(intervalId);
-  }, [refresh]);
+  }, [refresh, authed]);
 
   async function sendTestReading(kind: "normal" | "harsh-braking" | "harsh-cornering" | "harsh-acceleration") {
     setSending(true);
@@ -98,7 +112,11 @@ function App() {
         accelerationYG: kind === "harsh-cornering" ? (Math.random() > 0.5 ? 0.6 : -0.6) : 0.02,
       });
       await refresh();
-    } catch {
+    } catch (err) {
+      if (err instanceof SessionExpiredError) {
+        handleSessionExpired();
+        return;
+      }
       setError("Failed to send the test reading.");
     } finally {
       setSending(false);
@@ -107,6 +125,10 @@ function App() {
 
   function scrollTo(ref: React.RefObject<HTMLElement | null>) {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  if (!authed) {
+    return <LoginScreen onLoggedIn={() => setAuthed(true)} />;
   }
 
   return (
@@ -126,6 +148,14 @@ function App() {
             <SectionIcon size={20} />
           </button>
         ))}
+        <button
+          type="button"
+          className="sidebar__item sidebar__item--logout"
+          title="Log out"
+          onClick={handleSessionExpired}
+        >
+          <SignOut size={20} />
+        </button>
       </nav>
 
       <div className="dashboard">
@@ -206,7 +236,7 @@ function App() {
           <RecentRecordsTable records={records} />
         </section>
 
-        <AssistantPanel deviceId={deviceId} ref={assistantRef} />
+        <AssistantPanel deviceId={deviceId} onSessionExpired={handleSessionExpired} ref={assistantRef} />
       </div>
     </div>
   );

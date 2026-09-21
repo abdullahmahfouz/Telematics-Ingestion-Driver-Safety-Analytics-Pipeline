@@ -1,10 +1,11 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.assistant import ask
+from app.auth import get_bearer_token
 from app.conversation_store import conversation_store
 from app.rate_limiter import assistant_rate_limiter
 from app.telematics_client import telematics_client
@@ -37,7 +38,7 @@ class AskResponse(BaseModel):
 
 
 @app.post("/ask", response_model=AskResponse)
-async def ask_endpoint(request: AskRequest) -> AskResponse:
+async def ask_endpoint(request: AskRequest, auth_token: str = Depends(get_bearer_token)) -> AskResponse:
     if not request.question.strip():
         raise HTTPException(status_code=400, detail="question must not be empty")
 
@@ -56,6 +57,7 @@ async def ask_endpoint(request: AskRequest) -> AskResponse:
             request.question,
             device_id=request.device_id,
             history=history,
+            auth_token=auth_token,
         )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Assistant failed: {exc}") from exc
@@ -67,7 +69,7 @@ async def ask_endpoint(request: AskRequest) -> AskResponse:
 
 
 @app.delete("/conversations/{conversation_id}", status_code=204)
-async def clear_conversation(conversation_id: str) -> None:
+async def clear_conversation(conversation_id: str, _auth_token: str = Depends(get_bearer_token)) -> None:
     conversation_store.clear(conversation_id)
 
 

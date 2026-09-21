@@ -47,6 +47,7 @@ async def ask(
     question: str,
     device_id: str | None = None,
     history: list[dict] | None = None,
+    auth_token: str | None = None,
 ) -> tuple[str, list[dict]]:
     """Answers one question, optionally in the context of prior turns.
 
@@ -86,7 +87,7 @@ async def ask(
 
     for tool_call in tool_calls:
         arguments = json.loads(tool_call.function.arguments)
-        result = await call_tool(tool_call.function.name, arguments)
+        result = await call_tool(tool_call.function.name, arguments, auth_token)
         messages.append(
             {
                 "role": "tool",

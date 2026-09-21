@@ -1,4 +1,7 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TelematicsPipeline.Api.Auth;
 using TelematicsPipeline.Api.Caching;
 using TelematicsPipeline.Api.Models;
 using TelematicsPipeline.Api.Persistence;
@@ -21,10 +24,21 @@ public sealed class TelematicsController(
     /// and returns 400 with a ValidationProblemDetails body before this method runs.
     /// </summary>
     [HttpPost("ingest")]
+    [Authorize(AuthenticationSchemes = $"{ApiKeyAuthenticationDefaults.Scheme},{JwtBearerDefaults.AuthenticationScheme}")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Ingest([FromBody] TelematicsRecord record)
     {
+        // A device authenticates with an API key scoped to one DeviceId and can only post
+        // under that id. A logged-in dashboard user (JWT, no device_id claim) is a trusted
+        // human -- e.g. the UI's "send test reading" buttons -- and may post under any id.
+        var authorizedDeviceId = User.FindFirst(ApiKeyAuthenticationDefaults.DeviceIdClaimType)?.Value;
+        if (authorizedDeviceId is not null && !string.Equals(authorizedDeviceId, record.DeviceId, StringComparison.Ordinal))
+        {
+            return Forbid(ApiKeyAuthenticationDefaults.Scheme);
+        }
+
         db.TelematicsRecords.Add(record);
         await db.SaveChangesAsync();
 
@@ -67,6 +81,7 @@ public sealed class TelematicsController(
 
     /// <summary>Most recent readings for one device, newest first.</summary>
     [HttpGet("{deviceId}/recent")]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetRecent(string deviceId, [FromQuery] int limit = 10)
     {
@@ -76,6 +91,7 @@ public sealed class TelematicsController(
 
     /// <summary>Count of harsh-braking events for one device within a lookback window.</summary>
     [HttpGet("{deviceId}/harsh-braking-count")]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetHarshBrakingCount(string deviceId, [FromQuery] int sinceHours = 24)
     {
@@ -85,6 +101,7 @@ public sealed class TelematicsController(
 
     /// <summary>Count of harsh-cornering events for one device within a lookback window.</summary>
     [HttpGet("{deviceId}/harsh-cornering-count")]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetHarshCorneringCount(string deviceId, [FromQuery] int sinceHours = 24)
     {
@@ -94,6 +111,7 @@ public sealed class TelematicsController(
 
     /// <summary>Count of harsh-acceleration events for one device within a lookback window.</summary>
     [HttpGet("{deviceId}/harsh-acceleration-count")]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetHarshAccelerationCount(string deviceId, [FromQuery] int sinceHours = 24)
     {
@@ -106,6 +124,7 @@ public sealed class TelematicsController(
     /// Returns an empty list (not an error) when Redis is unavailable.
     /// </summary>
     [HttpGet("leaderboard")]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetLeaderboard([FromQuery] int limit = 10)
     {

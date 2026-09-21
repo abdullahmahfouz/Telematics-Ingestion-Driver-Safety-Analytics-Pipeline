@@ -2,6 +2,7 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { ArrowCounterClockwise, ChatCircleDots, PaperPlaneTilt } from "@phosphor-icons/react";
 import { askAssistant, AssistantRateLimitError, clearConversation } from "../api/assistantApi";
+import { SessionExpiredError } from "../api/authToken";
 import { ErrorBanner } from "./ErrorBanner";
 
 interface QaEntry {
@@ -11,10 +12,11 @@ interface QaEntry {
 
 interface AssistantPanelProps {
   deviceId: string;
+  onSessionExpired: () => void;
   ref?: React.Ref<HTMLElement>;
 }
 
-export function AssistantPanel({ deviceId, ref }: AssistantPanelProps) {
+export function AssistantPanel({ deviceId, onSessionExpired, ref }: AssistantPanelProps) {
   const [question, setQuestion] = useState("");
   const [history, setHistory] = useState<QaEntry[]>([]);
   const [conversationId, setConversationId] = useState(() => crypto.randomUUID());
@@ -40,6 +42,10 @@ export function AssistantPanel({ deviceId, ref }: AssistantPanelProps) {
       setHistory((prev) => [...prev, { question: trimmed, answer }]);
       setQuestion("");
     } catch (err) {
+      if (err instanceof SessionExpiredError) {
+        onSessionExpired();
+        return;
+      }
       if (err instanceof AssistantRateLimitError) {
         setError(err.message);
       } else {

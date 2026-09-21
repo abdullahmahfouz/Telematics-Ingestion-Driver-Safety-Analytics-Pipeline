@@ -3,8 +3,16 @@ using TelematicsPipeline.Simulator;
 
 var deviceId = GetOption("--device") ?? "b2A83F1";
 var apiBaseUrl = GetOption("--api") ?? "http://localhost:5231/api/telematics";
+var apiKey = GetOption("--api-key");
 var speedMultiplier = double.TryParse(GetOption("--speed"), out var parsed) ? Math.Max(0.1, parsed) : 1.0;
 var dryRun = args.Contains("--dry-run");
+
+if (!dryRun && string.IsNullOrWhiteSpace(apiKey))
+{
+    Console.WriteLine("error: --api-key is required (the API now authenticates ingestion). Provision one with:");
+    Console.WriteLine("  scripts/provision-device.sh <deviceId>");
+    return 1;
+}
 
 var route = Route.DonValleyParkway();
 var phases = TripScript.RushHourCommute();
@@ -23,6 +31,10 @@ Console.WriteLine("                (the API's counts should match these once the
 Console.WriteLine();
 
 using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+if (!string.IsNullOrWhiteSpace(apiKey))
+{
+    http.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
+}
 
 var sent = 0;
 var failed = 0;
