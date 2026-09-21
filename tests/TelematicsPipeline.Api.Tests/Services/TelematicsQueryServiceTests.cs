@@ -130,4 +130,36 @@ public class TelematicsQueryServiceTests : IAsyncLifetime
 
         Assert.Equal(2, count);
     }
+
+    [Fact]
+    public async Task GetHarshEventCountsByDeviceAsync_SumsAllThreeDetectorsPerDevice()
+    {
+        var now = DateTimeOffset.UtcNow;
+        _db.TelematicsRecords.AddRange(
+            // device-g: one harsh braking, one harsh cornering (two separate readings)
+            MakeRecord("device-g", now, accelerationXG: -0.62),
+            MakeRecord("device-g", now, accelerationYG: 0.58),
+            // device-h: one reading that trips both braking and cornering at once
+            MakeRecord("device-h", now, accelerationXG: -0.62, accelerationYG: 0.58),
+            // a clean reading must not count toward anything
+            MakeRecord("device-g", now, accelerationXG: 0.05, accelerationYG: 0.02));
+        await _db.SaveChangesAsync();
+
+        var counts = await _service.GetHarshEventCountsByDeviceAsync();
+
+        Assert.Equal(2, counts["device-g"]);
+        Assert.Equal(2, counts["device-h"]);
+    }
+
+    [Fact]
+    public async Task GetHarshEventCountsByDeviceAsync_OmitsDevicesWithNoHarshEvents()
+    {
+        var now = DateTimeOffset.UtcNow;
+        _db.TelematicsRecords.Add(MakeRecord("clean-device", now, accelerationXG: 0.05, accelerationYG: 0.02));
+        await _db.SaveChangesAsync();
+
+        var counts = await _service.GetHarshEventCountsByDeviceAsync();
+
+        Assert.False(counts.ContainsKey("clean-device"));
+    }
 }

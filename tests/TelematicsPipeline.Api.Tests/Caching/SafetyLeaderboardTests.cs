@@ -110,4 +110,43 @@ public class SafetyLeaderboardTests : IAsyncLifetime
         Assert.Empty(await offline.GetTopAsync(10));
         await offline.ResetAsync();
     }
+
+    [Fact]
+    public async Task RebuildAsync_ReplacesExistingStateWithTheGivenCounts()
+    {
+        // Simulates recovering from a Redis restart: whatever was live before (here, stale
+        // data for a device Postgres no longer agrees with) must not survive the rebuild.
+        await _leaderboard.RecordHarshEventsAsync("stale-device", 99);
+
+        await _leaderboard.RebuildAsync(new Dictionary<string, int>
+        {
+            ["device-a"] = 5,
+            ["device-b"] = 2,
+        });
+
+        var entries = await _leaderboard.GetTopAsync(10);
+
+        Assert.Equal(["device-a", "device-b"], entries.Select(e => e.DeviceId));
+        Assert.DoesNotContain(entries, e => e.DeviceId == "stale-device");
+    }
+
+    [Fact]
+    public async Task RebuildAsync_ClearsTheBoardWhenGivenNoCounts()
+    {
+        await _leaderboard.RecordHarshEventsAsync("device-a", 3);
+
+        await _leaderboard.RebuildAsync(new Dictionary<string, int>());
+
+        Assert.Empty(await _leaderboard.GetTopAsync(10));
+    }
+
+    [Fact]
+    public async Task RebuildAsync_DegradesGracefullyWithoutRedis()
+    {
+        var offline = new SafetyLeaderboard(null, NullLogger<SafetyLeaderboard>.Instance);
+
+        await offline.RebuildAsync(new Dictionary<string, int> { ["device-a"] = 5 });
+
+        Assert.Empty(await offline.GetTopAsync(10));
+    }
 }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -32,7 +33,16 @@ public class AuthControllerTests : IAsyncLifetime
         await _db.Database.ExecuteSqlRawAsync("DELETE FROM \"DeviceApiKeys\"");
         await _db.Database.ExecuteSqlRawAsync("DELETE FROM \"Users\"");
 
-        var configuration = new ConfigurationBuilder()
+        // A generous cap -- this class's own tests call Login a handful of times each and
+        // must not trip the limiter; RateLimiting_* tests below build their own tightly-capped
+        // controller instead of using this one.
+        _controller = new AuthController(_db, new JwtTokenService(CreateTestJwtConfiguration()), new LoginRateLimiter());
+    }
+
+    public async Task DisposeAsync() => await _db.DisposeAsync();
+
+    private static IConfiguration CreateTestJwtConfiguration() =>
+        new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Jwt:SigningKey"] = "unit-test-signing-key-unit-test-signing-key",
@@ -40,11 +50,6 @@ public class AuthControllerTests : IAsyncLifetime
                 ["Jwt:Audience"] = "test-audience",
             })
             .Build();
-
-        _controller = new AuthController(_db, new JwtTokenService(configuration));
-    }
-
-    public async Task DisposeAsync() => await _db.DisposeAsync();
 
     private async Task<User> SeedUserAsync(string username, string password)
     {
@@ -114,5 +119,48 @@ public class AuthControllerTests : IAsyncLifetime
         var result = await _controller.RegisterDevice(new RegisterDeviceRequest { DeviceId = "device-a" });
 
         Assert.IsType<ConflictObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Login_ReturnsTooManyRequests_AfterExceedingTheAttemptCapFromOneSource()
+    {
+        await SeedUserAsync("demo", "DemoPass123!");
+        var limitedController = new AuthController(
+            _db, new JwtTokenService(CreateTestJwtConfiguration()), new LoginRateLimiter(maxAttempts: 2));
+
+        await limitedController.Login(new LoginRequest { Username = "demo", Password = "wrong" });
+        await limitedController.Login(new LoginRequest { Username = "demo", Password = "wrong" });
+        // The third attempt is throttled even with the correct password -- the limiter counts
+        // every attempt, not just failed ones, so a valid credential can't be used to bypass it.
+        var result = await limitedController.Login(new LoginRequest { Username = "demo", Password = "DemoPass123!" });
+
+        var response = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status429TooManyRequests, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_TracksAttemptsSeparately_ByRemoteIp()
+    {
+        await SeedUserAsync("demo", "DemoPass123!");
+        var limitedController = new AuthController(
+            _db, new JwtTokenService(CreateTestJwtConfiguration()), new LoginRateLimiter(maxAttempts: 1))
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    Connection = { RemoteIpAddress = System.Net.IPAddress.Parse("10.0.0.1") },
+                },
+            },
+        };
+
+        await limitedController.Login(new LoginRequest { Username = "demo", Password = "wrong" });
+
+        // A second source IP must not be punished by the first IP's attempt.
+        limitedController.ControllerContext.HttpContext.Connection.RemoteIpAddress =
+            System.Net.IPAddress.Parse("10.0.0.2");
+        var result = await limitedController.Login(new LoginRequest { Username = "demo", Password = "DemoPass123!" });
+
+        Assert.IsType<OkObjectResult>(result);
     }
 }

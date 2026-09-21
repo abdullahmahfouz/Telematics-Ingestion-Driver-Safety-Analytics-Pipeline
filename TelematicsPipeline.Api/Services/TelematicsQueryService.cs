@@ -83,4 +83,42 @@ public sealed class TelematicsQueryService(TelematicsDbContext db)
                 && r.AccelerationXG >= HarshAccelerationDetector.HarshAccelerationThresholdG)
             .CountAsync();
     }
+
+    /// <summary>
+    /// All-time harsh-event totals per device, computed fresh from Postgres. Mirrors the
+    /// per-reading accumulation done at ingest time (each of the three detectors that
+    /// matches on a reading adds 1), so this can resync the Redis leaderboard -- the
+    /// source of truth stays Postgres, Redis is just a queryable view over it.
+    /// </summary>
+    public async Task<Dictionary<string, int>> GetHarshEventCountsByDeviceAsync()
+    {
+        var braking = await db.TelematicsRecords
+            .Where(r => r.AccelerationXG != null && r.AccelerationXG <= HarshBrakingDetector.HarshBrakingThresholdG)
+            .GroupBy(r => r.DeviceId)
+            .Select(g => new { DeviceId = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var cornering = await db.TelematicsRecords
+            .Where(r => r.AccelerationYG != null && Math.Abs(r.AccelerationYG!.Value) >= HarshCorneringDetector.HarshCorneringThresholdG)
+            .GroupBy(r => r.DeviceId)
+            .Select(g => new { DeviceId = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var acceleration = await db.TelematicsRecords
+            .Where(r => r.AccelerationXG != null && r.AccelerationXG >= HarshAccelerationDetector.HarshAccelerationThresholdG)
+            .GroupBy(r => r.DeviceId)
+            .Select(g => new { DeviceId = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var totals = new Dictionary<string, int>();
+        foreach (var group in new[] { braking, cornering, acceleration })
+        {
+            foreach (var entry in group)
+            {
+                totals[entry.DeviceId] = totals.GetValueOrDefault(entry.DeviceId) + entry.Count;
+            }
+        }
+
+        return totals;
+    }
 }

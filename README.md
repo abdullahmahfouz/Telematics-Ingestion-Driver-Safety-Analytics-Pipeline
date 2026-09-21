@@ -2,14 +2,17 @@
 
 A three-service telematics platform that ingests live vehicle data, detects harsh-driving events in real time, and lets you ask an AI assistant about a fleet's safety record in plain English.
 
-It's a portfolio project built to demonstrate the kind of engineering a fleet-telematics company (e.g. Geotab) actually does: high-throughput device ingestion, real-time safety scoring against physically-grounded thresholds, and serving that data through fast, authenticated, well-tested APIs.
+It's a portfolio project built to demonstrate the kind of engineering a fleet-telematics company (e.g. Geotab) actually does: per-device event ingestion, real-time safety scoring against physically-grounded thresholds, and serving that data through fast, authenticated, well-tested APIs. It is not yet load-tested or built for high-throughput ingestion — see [Trade-offs / next steps](#trade-offs--next-steps).
+
+![Driver safety dashboard showing live stats, a per-device safety leaderboard, and a trip map](docs/dashboard.png)
 
 ## Why this project
 
 - **Safety thresholds aren't guessed.** Harsh braking (`-0.4g`), cornering (`±0.45g`), and acceleration (`0.35g`) all match the example thresholds in Geotab's own MyGeotab Rule Conditions documentation.
 - **The demo data is physically real, not random.** The included trip simulator derives every G-force reading from actual speed deltas and yaw rate along a real route, not hardcoded noise — a dry run predicts exactly how many harsh events the API should detect, and it does.
-- **Every layer is authenticated.** Dashboard operators log in with a password (JWT); devices authenticate with a per-device API key that can only post under its own device ID.
-- **106 automated tests**, including tests that run against real PostgreSQL and Redis instances rather than mocks, specifically to catch bugs a mock would hide.
+- **Every layer is authenticated.** Dashboard operators log in with a password (JWT); devices authenticate with a per-device API key that can only post under its own device ID. Authentication is not yet the same thing as per-user data isolation — see [Trade-offs / next steps](#trade-offs--next-steps).
+- **The Redis leaderboard is self-healing.** It's a derived view over Postgres, not a second source of truth: on every API startup it's rebuilt from a fresh Postgres aggregate, so a Redis restart or an outage mid-ingest can't leave it permanently wrong.
+- **126 automated tests**, including tests that run against real PostgreSQL and Redis instances rather than mocks, specifically to catch bugs a mock would hide.
 
 ## Architecture
 
@@ -142,10 +145,10 @@ curl -s http://localhost:5231/api/telematics/leaderboard -H "Authorization: Bear
 ## Development & testing
 
 ```bash
-# All .NET tests (API + simulator) — 69 tests, includes real Postgres/Redis integration tests
+# All .NET tests (API + simulator) — 85 tests, includes real Postgres/Redis integration tests
 dotnet test
 
-# Frontend tests — 37 tests
+# Frontend tests — 41 tests
 cd client && npm test
 
 # Type-check the frontend
@@ -168,6 +171,13 @@ client/                        React + TypeScript dashboard
 tests/                         xUnit test projects for the API and simulator
 scripts/                       Operational scripts (e.g. device provisioning)
 ```
+
+## Trade-offs / next steps
+
+Honest gaps, not yet fixed:
+
+- **No per-user data isolation.** Every read endpoint (`GET /{deviceId}/recent`, the harsh-event counts, the leaderboard) is `[Authorize]`-only — any valid dashboard JWT can query *any* `deviceId`, not just ones that JWT's user owns. The AI assistant inherits this: it forwards the caller's JWT to the .NET API (so it can't see more than that JWT already can), but `conversation_id` is a client-supplied UUID with no ownership check, so a guessed or leaked ID can be read or cleared by any authenticated user. This works today because there's exactly one demo user and no concept of a "fleet" yet. Fixing it for real means adding an owning user/fleet to `DeviceApiKeys`, filtering every device-scoped query by that ownership, and keying conversations by user rather than by client-supplied ID alone.
+- **Not built for high-throughput ingestion.** `POST /ingest` is one HTTP request and one Postgres commit per reading, with no idempotency key (a retried request double-counts), no batching or queue in front of the database, no composite `(DeviceId, Timestamp)` index, and no load test behind the current design. Fine for a demo device or two; a real fleet posting at 1 Hz each would need all four.
 
 ## Contributing
 

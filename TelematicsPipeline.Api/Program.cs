@@ -25,6 +25,7 @@ builder.Services.AddDbContext<TelematicsDbContext>(options =>
 
 builder.Services.AddScoped<TelematicsQueryService>();
 builder.Services.AddSingleton<JwtTokenService>();
+builder.Services.AddSingleton<LoginRateLimiter>();
 
 var jwtSigningKey = JwtTokenService.SigningKeyOrThrow(builder.Configuration);
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "telematics-api";
@@ -97,6 +98,11 @@ if (app.Environment.IsDevelopment())
     await InitializeDevelopmentDatabaseAsync(app.Services);
 }
 
+// Redis is a derived view over Postgres, not the source of truth, so a restart or an outage
+// during ingestion must not leave it permanently wrong -- resync it on every startup, in
+// every environment (a no-op if Redis isn't available).
+await RebuildLeaderboardAsync(app.Services);
+
 app.UseHttpsRedirection();
 
 app.UseCors(DashboardCorsPolicy);
@@ -126,4 +132,14 @@ static async Task InitializeDevelopmentDatabaseAsync(IServiceProvider services)
         });
         await db.SaveChangesAsync();
     }
+}
+
+static async Task RebuildLeaderboardAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var queryService = scope.ServiceProvider.GetRequiredService<TelematicsQueryService>();
+    var leaderboard = scope.ServiceProvider.GetRequiredService<SafetyLeaderboard>();
+
+    var counts = await queryService.GetHarshEventCountsByDeviceAsync();
+    await leaderboard.RebuildAsync(counts);
 }

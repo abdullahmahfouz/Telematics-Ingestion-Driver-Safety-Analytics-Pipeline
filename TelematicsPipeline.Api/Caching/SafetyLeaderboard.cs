@@ -86,4 +86,39 @@ public sealed class SafetyLeaderboard(IConnectionMultiplexer? redis, ILogger<Saf
             logger.LogWarning(ex, "Leaderboard reset failed -- Redis unavailable");
         }
     }
+
+    /// <summary>
+    /// Replaces the leaderboard with counts computed fresh from Postgres. Recording an event
+    /// is fire-and-forget after the Postgres write (see the ingest endpoint), so a Redis outage
+    /// at the wrong moment -- or a Redis restart with no persistence -- silently drops an
+    /// increment forever unless something resyncs it against the source of truth. Called once
+    /// at API startup for that reason.
+    /// </summary>
+    public async Task RebuildAsync(IReadOnlyDictionary<string, int> countsByDevice)
+    {
+        if (redis is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var db = redis.GetDatabase();
+            await db.KeyDeleteAsync(LeaderboardKey);
+
+            if (countsByDevice.Count == 0)
+            {
+                return;
+            }
+
+            var entries = countsByDevice
+                .Select(kvp => new SortedSetEntry(kvp.Key, kvp.Value))
+                .ToArray();
+            await db.SortedSetAddAsync(LeaderboardKey, entries);
+        }
+        catch (RedisException ex)
+        {
+            logger.LogWarning(ex, "Leaderboard rebuild failed -- Redis unavailable");
+        }
+    }
 }

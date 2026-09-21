@@ -7,6 +7,13 @@ export class InvalidCredentialsError extends Error {
   }
 }
 
+export class LoginRateLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "LoginRateLimitError";
+  }
+}
+
 export async function login(username: string, password: string): Promise<string> {
   const response = await fetch(`${AUTH_BASE_URL}/login`, {
     method: "POST",
@@ -16,6 +23,14 @@ export async function login(username: string, password: string): Promise<string>
 
   if (response.status === 401) {
     throw new InvalidCredentialsError();
+  }
+  if (response.status === 429) {
+    const problem = await response.json().catch(() => null);
+    throw new LoginRateLimitError(
+      typeof problem?.detail === "string"
+        ? problem.detail
+        : "Too many login attempts. Please wait a moment and try again.",
+    );
   }
   if (!response.ok) {
     throw new Error(`Login failed with status ${response.status}`);

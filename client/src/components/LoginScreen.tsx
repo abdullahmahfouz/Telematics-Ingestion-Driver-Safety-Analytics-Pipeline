@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { SteeringWheel } from "@phosphor-icons/react";
-import { InvalidCredentialsError, login } from "../api/authApi";
+import { InvalidCredentialsError, LoginRateLimitError, login } from "../api/authApi";
 import { setToken } from "../api/authToken";
 import { ErrorBanner } from "./ErrorBanner";
 
@@ -13,11 +13,15 @@ export function LoginScreen({ onLoggedIn }: LoginScreenProps) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Synchronous guard, checked before any state update: `if (loading) return` alone has a
+  // race window between a fast double-submit and React committing the re-render.
+  const loadingRef = useRef(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (loading) return;
+    if (loadingRef.current) return;
 
+    loadingRef.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -25,12 +29,13 @@ export function LoginScreen({ onLoggedIn }: LoginScreenProps) {
       setToken(token);
       onLoggedIn();
     } catch (err) {
-      setError(
-        err instanceof InvalidCredentialsError
-          ? err.message
-          : "Could not reach the API. Is it running at http://localhost:5231?",
-      );
+      if (err instanceof InvalidCredentialsError || err instanceof LoginRateLimitError) {
+        setError(err.message);
+      } else {
+        setError("Could not reach the API. Is it running at http://localhost:5231?");
+      }
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
   }
