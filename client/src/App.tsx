@@ -1,9 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
+import {
+  ArrowsClockwise,
+  ChatCircleDots,
+  Gauge,
+  MagnifyingGlass,
+  MapTrifold,
+  SteeringWheel,
+  WarningCircle,
+  type Icon,
+} from "@phosphor-icons/react";
 import { StatCard } from "./components/StatCard";
 import { RecentRecordsTable } from "./components/RecentRecordsTable";
 import { TripMap } from "./components/TripMap";
 import { AssistantPanel } from "./components/AssistantPanel";
+import { ErrorBanner } from "./components/ErrorBanner";
 import {
   getHarshAccelerationCount,
   getHarshBrakingCount,
@@ -30,6 +41,16 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+
+  const overviewRef = useRef<HTMLElement>(null);
+  const mapRef = useRef<HTMLElement>(null);
+  const assistantRef = useRef<HTMLElement>(null);
+
+  const sections: { ref: React.RefObject<HTMLElement | null>; icon: Icon; label: string }[] = [
+    { ref: overviewRef, icon: Gauge, label: "Overview" },
+    { ref: mapRef, icon: MapTrifold, label: "Map & trips" },
+    { ref: assistantRef, icon: ChatCircleDots, label: "Safety assistant" },
+  ];
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -84,69 +105,109 @@ function App() {
     }
   }
 
+  function scrollTo(ref: React.RefObject<HTMLElement | null>) {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
-    <div className="dashboard">
-      <header className="dashboard__header">
-        <h1>Driver safety dashboard</h1>
-        <form
-          className="device-lookup"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setDeviceId(deviceIdInput.trim());
-          }}
-        >
-          <input
-            value={deviceIdInput}
-            onChange={(e) => setDeviceIdInput(e.target.value)}
-            placeholder="Device ID"
-            aria-label="Device ID"
+    <div className="app-shell">
+      <nav className="sidebar" aria-label="Sections">
+        <div className="sidebar__mark" aria-hidden="true">
+          <SteeringWheel size={20} weight="bold" />
+        </div>
+        {sections.map(({ ref, icon: SectionIcon, label }) => (
+          <button
+            key={label}
+            type="button"
+            className="sidebar__item"
+            title={label}
+            onClick={() => scrollTo(ref)}
+          >
+            <SectionIcon size={20} />
+          </button>
+        ))}
+      </nav>
+
+      <div className="dashboard">
+        <header className="dashboard__header" ref={overviewRef}>
+          <div className="dashboard__title">
+            <h1>Driver safety dashboard</h1>
+            <span className={`status-pill ${error ? "status-pill--offline" : "status-pill--live"}`}>
+              <span className="status-pill__dot" />
+              {error ? "Disconnected" : "Live"}
+            </span>
+          </div>
+          <form
+            className="device-lookup"
+            onSubmit={(e) => {
+              e.preventDefault();
+              setDeviceId(deviceIdInput.trim());
+            }}
+          >
+            <input
+              value={deviceIdInput}
+              onChange={(e) => setDeviceIdInput(e.target.value)}
+              placeholder="Device ID"
+              aria-label="Device ID"
+            />
+            <button type="submit">
+              <MagnifyingGlass size={15} />
+              Look up
+            </button>
+          </form>
+        </header>
+
+        {error && <ErrorBanner message={error} />}
+
+        <section className="stat-row">
+          <StatCard label="Readings loaded" value={records.length} icon={Gauge} />
+          <StatCard
+            label="Harsh braking (24h)"
+            value={brakingCount ?? "…"}
+            tone={brakingCount ? "warning" : "neutral"}
+            icon={WarningCircle}
           />
-          <button type="submit">Look up</button>
-        </form>
-      </header>
+          <StatCard
+            label="Harsh cornering (24h)"
+            value={corneringCount ?? "…"}
+            tone={corneringCount ? "warning" : "neutral"}
+            icon={WarningCircle}
+          />
+          <StatCard
+            label="Harsh acceleration (24h)"
+            value={accelerationCount ?? "…"}
+            tone={accelerationCount ? "warning" : "neutral"}
+            icon={WarningCircle}
+          />
+        </section>
 
-      {error && <div className="banner banner--error">{error}</div>}
+        <section className="test-actions">
+          <span>Send a test reading:</span>
+          <button disabled={sending} onClick={() => sendTestReading("normal")}>
+            Normal
+          </button>
+          <button disabled={sending} onClick={() => sendTestReading("harsh-braking")}>
+            Harsh braking
+          </button>
+          <button disabled={sending} onClick={() => sendTestReading("harsh-cornering")}>
+            Harsh cornering
+          </button>
+          <button disabled={sending} onClick={() => sendTestReading("harsh-acceleration")}>
+            Harsh acceleration
+          </button>
+          <button disabled={loading} onClick={() => refresh()}>
+            <ArrowsClockwise size={14} className={loading ? "spin" : undefined} />
+            Refresh
+          </button>
+        </section>
 
-      <section className="stat-row">
-        <StatCard label="Readings loaded" value={records.length} />
-        <StatCard label="Harsh braking (24h)" value={brakingCount ?? "…"} tone={brakingCount ? "warning" : "neutral"} />
-        <StatCard
-          label="Harsh cornering (24h)"
-          value={corneringCount ?? "…"}
-          tone={corneringCount ? "warning" : "neutral"}
-        />
-        <StatCard
-          label="Harsh acceleration (24h)"
-          value={accelerationCount ?? "…"}
-          tone={accelerationCount ? "warning" : "neutral"}
-        />
-      </section>
+        <section className="dashboard__main" ref={mapRef}>
+          <TripMap records={records} />
+          <RecentRecordsTable records={records} />
+        </section>
 
-      <section className="test-actions">
-        <span>Send a test reading:</span>
-        <button disabled={sending} onClick={() => sendTestReading("normal")}>
-          Normal
-        </button>
-        <button disabled={sending} onClick={() => sendTestReading("harsh-braking")}>
-          Harsh braking
-        </button>
-        <button disabled={sending} onClick={() => sendTestReading("harsh-cornering")}>
-          Harsh cornering
-        </button>
-        <button disabled={sending} onClick={() => sendTestReading("harsh-acceleration")}>
-          Harsh acceleration
-        </button>
-        <button disabled={loading} onClick={() => refresh()}>
-          Refresh
-        </button>
-      </section>
-
-      <section className="dashboard__main">
-        <TripMap records={records} />
-        <RecentRecordsTable records={records} />
-      </section>
-
-      <AssistantPanel deviceId={deviceId} />
+        <AssistantPanel deviceId={deviceId} ref={assistantRef} />
+      </div>
     </div>
   );
 }

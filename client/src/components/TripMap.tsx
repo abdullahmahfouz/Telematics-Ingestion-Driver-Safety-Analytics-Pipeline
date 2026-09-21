@@ -11,6 +11,15 @@ interface TripMapProps {
   records: TelematicsRecord[];
 }
 
+/**
+ * Reads a color straight from the CSS custom property defined in index.css, so the map's
+ * JS-only paint/marker options (which can't reference var(...) directly) stay in sync with
+ * the theme instead of carrying their own hardcoded copy that can silently drift from it.
+ */
+function themeColor(cssVariable: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(cssVariable).trim();
+}
+
 export function TripMap({ records }: TripMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -58,7 +67,7 @@ export function TripMap({ records }: TripMapProps) {
           id: "trip-trail-line",
           type: "line",
           source: "trip-trail",
-          paint: { "line-color": "#378ADD", "line-width": 3 },
+          paint: { "line-color": themeColor("--accent"), "line-width": 3 },
         });
       }
     };
@@ -75,7 +84,9 @@ export function TripMap({ records }: TripMapProps) {
         isHarshCornering(record.accelerationYG) ||
         isHarshAcceleration(record.accelerationXG);
 
-      const marker = new mapboxgl.Marker({ color: isHarsh ? "#E24B4A" : "#5DCAA5" })
+      const marker = new mapboxgl.Marker({
+        color: isHarsh ? themeColor("--danger-text") : themeColor("--success-text"),
+      })
         .setLngLat([record.longitude, record.latitude])
         .setPopup(
           new mapboxgl.Popup({ offset: 12 }).setText(
@@ -103,7 +114,7 @@ export function TripMap({ records }: TripMapProps) {
     return (
       <div className="map-placeholder">
         <p>Map requires a Mapbox access token.</p>
-        <p className="map-placeholder__hint">
+        <p>
           Add <code>VITE_MAPBOX_TOKEN=pk.your_token</code> to <code>client/.env.local</code> and restart the dev
           server.
         </p>

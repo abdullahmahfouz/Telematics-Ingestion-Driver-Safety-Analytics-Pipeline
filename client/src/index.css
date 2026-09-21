@@ -1,107 +1,93 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* Dark cockpit surfaces */
+  --bg: #0a0a0c;
+  --surface: #17181c;
+  --surface-muted: #1e1f24;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Text -- never pure white, never pure black */
+  --text-h: #f5f5f4;
+  --text: #c7c7cc;
+  --text-secondary: #86868c;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
+  /* Single locked accent -- amber, used identically everywhere */
+  --accent: #f2a93c;
+  --accent-hover: #ffbe5c;
+  --accent-bg: rgba(242, 169, 60, 0.12);
+  --accent-contrast: #1a1200; /* text color for content sitting on --accent */
+
+  /* Semantic status -- desaturated enough to sit quietly on dark surfaces */
+  --danger-bg: rgba(255, 92, 92, 0.14);
+  --danger-bg-strong: rgba(255, 92, 92, 0.16);
+  --danger-border: rgba(255, 92, 92, 0.3);
+  --danger-text: #ff8585;
+  --success-bg: rgba(52, 211, 153, 0.14);
+  --success-text: #4ade9b;
+  --info-bg: rgba(56, 189, 248, 0.14);
+  --info-text: #5ec5f8;
+
+  --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
+
+  font: 14px/1.6 var(--font-sans);
+  color-scheme: dark;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
 }
 
 #root {
   width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
   min-height: 100svh;
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  background: var(--bg);
 }
 
 h1,
 h2 {
-  font-family: var(--heading);
+  font-family: var(--font-sans);
   font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
   color: var(--text-h);
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
 p {
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
+code {
+  font-family: var(--font-mono);
   display: inline-flex;
   border-radius: 4px;
   color: var(--text-h);
+  font-size: 12px;
+  line-height: 1.35;
+  padding: 3px 6px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 700ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
 }
