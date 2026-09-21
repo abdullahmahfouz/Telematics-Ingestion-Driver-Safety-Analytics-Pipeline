@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.assistant import ask
+from app.conversation_store import conversation_store
 from app.rate_limiter import assistant_rate_limiter
 from app.telematics_client import telematics_client
 
@@ -28,6 +29,7 @@ app.add_middleware(
 class AskRequest(BaseModel):
     question: str
     device_id: str | None = None
+    conversation_id: str | None = None
 
 
 class AskResponse(BaseModel):
@@ -47,12 +49,26 @@ async def ask_endpoint(request: AskRequest) -> AskResponse:
             headers={"Retry-After": str(int(retry_after) + 1)},
         )
 
+    history = conversation_store.get_messages(request.conversation_id) if request.conversation_id else []
+
     try:
-        answer = await ask(request.question, device_id=request.device_id)
+        answer, updated_history = await ask(
+            request.question,
+            device_id=request.device_id,
+            history=history,
+        )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Assistant failed: {exc}") from exc
 
+    if request.conversation_id:
+        conversation_store.save_messages(request.conversation_id, updated_history)
+
     return AskResponse(answer=answer)
+
+
+@app.delete("/conversations/{conversation_id}", status_code=204)
+async def clear_conversation(conversation_id: str) -> None:
+    conversation_store.clear(conversation_id)
 
 
 @app.get("/health")

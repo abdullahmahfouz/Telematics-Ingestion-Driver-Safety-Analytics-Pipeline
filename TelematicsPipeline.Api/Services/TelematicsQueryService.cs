@@ -64,4 +64,23 @@ public sealed class TelematicsQueryService(TelematicsDbContext db)
                 && Math.Abs(r.AccelerationYG!.Value) >= HarshCorneringDetector.HarshCorneringThresholdG)
             .CountAsync();
     }
+
+    /// <summary>
+    /// Counts harsh-acceleration events (per <see cref="HarshAccelerationDetector"/>) for one device
+    /// within a trailing lookback window.
+    /// </summary>
+    /// <param name="deviceId">Device to count events for.</param>
+    /// <param name="sinceHours">Lookback window in hours; clamped to [1, 720] (30 days).</param>
+    public async Task<int> GetHarshAccelerationEventCountAsync(string deviceId, int sinceHours)
+    {
+        sinceHours = Math.Clamp(sinceHours, 1, 24 * 30);
+        var since = DateTimeOffset.UtcNow.AddHours(-sinceHours);
+
+        return await db.TelematicsRecords
+            .Where(r => r.DeviceId == deviceId
+                && r.Timestamp >= since
+                && r.AccelerationXG != null
+                && r.AccelerationXG >= HarshAccelerationDetector.HarshAccelerationThresholdG)
+            .CountAsync();
+    }
 }

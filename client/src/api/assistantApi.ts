@@ -10,11 +10,15 @@ export class AssistantRateLimitError extends Error {
   }
 }
 
-export async function askAssistant(question: string, deviceId?: string): Promise<string> {
+export async function askAssistant(
+  question: string,
+  deviceId?: string,
+  conversationId?: string,
+): Promise<string> {
   const response = await fetch(`${ASSISTANT_BASE_URL}/ask`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, device_id: deviceId }),
+    body: JSON.stringify({ question, device_id: deviceId, conversation_id: conversationId }),
   });
 
   // 429 = our own service's rate limiter rejected the request before ever calling Gemini.
@@ -40,4 +44,12 @@ export async function askAssistant(question: string, deviceId?: string): Promise
 
   const data = (await response.json()) as { answer: string };
   return data.answer;
+}
+
+/** Drops the server-side memory for a conversation. Best-effort: if it fails,
+ * the client still starts a fresh conversation id, so the old one just ages out. */
+export async function clearConversation(conversationId: string): Promise<void> {
+  await fetch(`${ASSISTANT_BASE_URL}/conversations/${conversationId}`, { method: "DELETE" }).catch(
+    () => undefined,
+  );
 }

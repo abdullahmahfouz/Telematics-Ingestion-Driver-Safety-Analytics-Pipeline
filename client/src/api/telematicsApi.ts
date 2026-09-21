@@ -22,6 +22,10 @@ export function getHarshCorneringCount(deviceId: string, sinceHours = 24): Promi
   return getJson(`${API_BASE_URL}/${deviceId}/harsh-cornering-count?sinceHours=${sinceHours}`);
 }
 
+export function getHarshAccelerationCount(deviceId: string, sinceHours = 24): Promise<HarshEventCount> {
+  return getJson(`${API_BASE_URL}/${deviceId}/harsh-acceleration-count?sinceHours=${sinceHours}`);
+}
+
 export async function ingestRecord(record: Partial<TelematicsRecord>): Promise<TelematicsRecord> {
   const response = await fetch(`${API_BASE_URL}/ingest`, {
     method: "POST",

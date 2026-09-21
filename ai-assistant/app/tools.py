@@ -57,6 +57,25 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_harsh_acceleration_count",
+            "description": "Count how many harsh-acceleration events a device has had within a trailing time window.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "device_id": {"type": "string", "description": "The device ID, e.g. b2A83F1"},
+                    "since_hours": {
+                        "type": "integer",
+                        "description": "Lookback window in hours",
+                        "default": 24,
+                    },
+                },
+                "required": ["device_id"],
+            },
+        },
+    },
 ]
 
 
@@ -73,6 +92,10 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> str:
         )
     elif name == "get_harsh_cornering_count":
         result = await telematics_client.get_harsh_cornering_count(
+            device_id=arguments["device_id"], since_hours=arguments.get("since_hours", 24)
+        )
+    elif name == "get_harsh_acceleration_count":
+        result = await telematics_client.get_harsh_acceleration_count(
             device_id=arguments["device_id"], since_hours=arguments.get("since_hours", 24)
         )
     else:

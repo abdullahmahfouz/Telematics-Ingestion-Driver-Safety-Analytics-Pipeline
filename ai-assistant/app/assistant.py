@@ -43,7 +43,16 @@ async def _get_final_answer(messages: list[dict]) -> str:
     return FALLBACK_ANSWER
 
 
-async def ask(question: str, device_id: str | None = None) -> str:
+async def ask(
+    question: str,
+    device_id: str | None = None,
+    history: list[dict] | None = None,
+) -> tuple[str, list[dict]]:
+    """Answers one question, optionally in the context of prior turns.
+
+    Returns (answer, updated_history) where updated_history holds only the
+    conversational turns -- the caller persists that and passes it back next time.
+    """
     system_prompt = SYSTEM_PROMPT
     if device_id:
         system_prompt += (
@@ -51,8 +60,11 @@ async def ask(question: str, device_id: str | None = None) -> str:
             "name a specific device, assume they mean this one."
         )
 
+    prior_turns = history or []
+
     messages: list[dict] = [
         {"role": "system", "content": system_prompt},
+        *prior_turns,
         {"role": "user", "content": question},
     ]
 
@@ -67,7 +79,8 @@ async def ask(question: str, device_id: str | None = None) -> str:
     tool_calls = response_message.tool_calls
 
     if not tool_calls:
-        return response_message.content or FALLBACK_ANSWER
+        answer = response_message.content or FALLBACK_ANSWER
+        return answer, _append_turn(prior_turns, question, answer)
 
     messages.append(response_message.model_dump(exclude_none=True))
 
@@ -82,4 +95,13 @@ async def ask(question: str, device_id: str | None = None) -> str:
             }
         )
 
-    return await _get_final_answer(messages)
+    answer = await _get_final_answer(messages)
+    return answer, _append_turn(prior_turns, question, answer)
+
+
+def _append_turn(prior_turns: list[dict], question: str, answer: str) -> list[dict]:
+    return [
+        *prior_turns,
+        {"role": "user", "content": question},
+        {"role": "assistant", "content": answer},
+    ]

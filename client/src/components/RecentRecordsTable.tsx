@@ -1,5 +1,5 @@
 import type { TelematicsRecord } from "../types/telematics";
-import { HarshBrakingThresholdG, HarshCorneringThresholdG } from "../safety/thresholds";
+import { isHarshAcceleration, isHarshBraking, isHarshCornering } from "../safety/thresholds";
 
 interface RecentRecordsTableProps {
   records: TelematicsRecord[];
@@ -23,10 +23,9 @@ export function RecentRecordsTable({ records }: RecentRecordsTableProps) {
       </thead>
       <tbody>
         {records.map((record) => {
-          const isHarshBraking =
-            record.accelerationXG !== null && record.accelerationXG <= HarshBrakingThresholdG;
-          const isHarshCornering =
-            record.accelerationYG !== null && Math.abs(record.accelerationYG) >= HarshCorneringThresholdG;
+          const braking = isHarshBraking(record.accelerationXG);
+          const cornering = isHarshCornering(record.accelerationYG);
+          const acceleration = isHarshAcceleration(record.accelerationXG);
 
           return (
             <tr key={record.id}>
@@ -35,9 +34,10 @@ export function RecentRecordsTable({ records }: RecentRecordsTableProps) {
               <td>{record.accelerationXG?.toFixed(2) ?? "—"}</td>
               <td>{record.accelerationYG?.toFixed(2) ?? "—"}</td>
               <td>
-                {isHarshBraking && <span className="flag flag--danger">harsh braking</span>}
-                {isHarshCornering && <span className="flag flag--danger">harsh cornering</span>}
-                {!isHarshBraking && !isHarshCornering && <span className="flag flag--ok">normal</span>}
+                {braking && <span className="flag flag--danger">harsh braking</span>}
+                {cornering && <span className="flag flag--danger">harsh cornering</span>}
+                {acceleration && <span className="flag flag--danger">harsh acceleration</span>}
+                {!braking && !cornering && !acceleration && <span className="flag flag--ok">normal</span>}
               </td>
             </tr>
           );

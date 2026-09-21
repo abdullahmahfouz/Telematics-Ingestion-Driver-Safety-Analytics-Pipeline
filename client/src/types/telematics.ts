@@ -22,4 +22,5 @@ export interface HarshEventCount {
   sinceHours: number;
   harshBrakingEventCount?: number;
   harshCorneringEventCount?: number;
+  harshAccelerationEventCount?: number;
 }

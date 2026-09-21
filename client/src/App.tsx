@@ -4,7 +4,13 @@ import { StatCard } from "./components/StatCard";
 import { RecentRecordsTable } from "./components/RecentRecordsTable";
 import { TripMap } from "./components/TripMap";
 import { AssistantPanel } from "./components/AssistantPanel";
-import { getHarshBrakingCount, getHarshCorneringCount, getRecentRecords, ingestRecord } from "./api/telematicsApi";
+import {
+  getHarshAccelerationCount,
+  getHarshBrakingCount,
+  getHarshCorneringCount,
+  getRecentRecords,
+  ingestRecord,
+} from "./api/telematicsApi";
 import type { TelematicsRecord } from "./types/telematics";
 
 const BASE_LATITUDE = 43.685;
@@ -20,6 +26,7 @@ function App() {
   const [records, setRecords] = useState<TelematicsRecord[]>([]);
   const [brakingCount, setBrakingCount] = useState<number | null>(null);
   const [corneringCount, setCorneringCount] = useState<number | null>(null);
+  const [accelerationCount, setAccelerationCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -28,14 +35,16 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const [recent, braking, cornering] = await Promise.all([
+      const [recent, braking, cornering, acceleration] = await Promise.all([
         getRecentRecords(deviceId, 20),
         getHarshBrakingCount(deviceId, 24),
         getHarshCorneringCount(deviceId, 24),
+        getHarshAccelerationCount(deviceId, 24),
       ]);
       setRecords(recent);
       setBrakingCount(braking.harshBrakingEventCount ?? 0);
       setCorneringCount(cornering.harshCorneringEventCount ?? 0);
+      setAccelerationCount(acceleration.harshAccelerationEventCount ?? 0);
     } catch {
       setError("Could not reach the API. Is it running at http://localhost:5231?");
     } finally {
@@ -49,7 +58,7 @@ function App() {
     return () => clearInterval(intervalId);
   }, [refresh]);
 
-  async function sendTestReading(kind: "normal" | "harsh-braking" | "harsh-cornering") {
+  async function sendTestReading(kind: "normal" | "harsh-braking" | "harsh-cornering" | "harsh-acceleration") {
     setSending(true);
     setError(null);
     try {
@@ -63,7 +72,8 @@ function App() {
         odometerKm: 84300,
         isIdling: false,
         isIgnitionOn: true,
-        accelerationXG: kind === "harsh-braking" ? -0.65 : 0.05,
+        accelerationXG:
+          kind === "harsh-braking" ? -0.65 : kind === "harsh-acceleration" ? 0.45 : 0.05,
         accelerationYG: kind === "harsh-cornering" ? (Math.random() > 0.5 ? 0.6 : -0.6) : 0.02,
       });
       await refresh();
@@ -105,6 +115,11 @@ function App() {
           value={corneringCount ?? "…"}
           tone={corneringCount ? "warning" : "neutral"}
         />
+        <StatCard
+          label="Harsh acceleration (24h)"
+          value={accelerationCount ?? "…"}
+          tone={accelerationCount ? "warning" : "neutral"}
+        />
       </section>
 
       <section className="test-actions">
@@ -117,6 +132,9 @@ function App() {
         </button>
         <button disabled={sending} onClick={() => sendTestReading("harsh-cornering")}>
           Harsh cornering
+        </button>
+        <button disabled={sending} onClick={() => sendTestReading("harsh-acceleration")}>
+          Harsh acceleration
         </button>
         <button disabled={loading} onClick={() => refresh()}>
           Refresh

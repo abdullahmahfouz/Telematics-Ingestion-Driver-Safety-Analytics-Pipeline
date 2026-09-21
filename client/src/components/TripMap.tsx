@@ -3,7 +3,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { Feature, LineString } from "geojson";
 import type { TelematicsRecord } from "../types/telematics";
-import { HarshBrakingThresholdG, HarshCorneringThresholdG } from "../safety/thresholds";
+import { isHarshAcceleration, isHarshBraking, isHarshCornering } from "../safety/thresholds";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -71,8 +71,9 @@ export function TripMap({ records }: TripMapProps) {
 
     chronological.forEach((record) => {
       const isHarsh =
-        (record.accelerationXG !== null && record.accelerationXG <= HarshBrakingThresholdG) ||
-        (record.accelerationYG !== null && Math.abs(record.accelerationYG) >= HarshCorneringThresholdG);
+        isHarshBraking(record.accelerationXG) ||
+        isHarshCornering(record.accelerationYG) ||
+        isHarshAcceleration(record.accelerationXG);
 
       const marker = new mapboxgl.Marker({ color: isHarsh ? "#E24B4A" : "#5DCAA5" })
         .setLngLat([record.longitude, record.latitude])

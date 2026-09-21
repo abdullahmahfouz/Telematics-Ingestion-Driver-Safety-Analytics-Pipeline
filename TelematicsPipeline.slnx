@@ -1,6 +1,8 @@
 <Solution>
   <Folder Name="/tests/">
     <Project Path="tests/TelematicsPipeline.Api.Tests/TelematicsPipeline.Api.Tests.csproj" />
+    <Project Path="tests/TelematicsPipeline.Simulator.Tests/TelematicsPipeline.Simulator.Tests.csproj" />
   </Folder>
   <Project Path="TelematicsPipeline.Api/TelematicsPipeline.Api.csproj" />
+  <Project Path="TelematicsPipeline.Simulator/TelematicsPipeline.Simulator.csproj" />
 </Solution>

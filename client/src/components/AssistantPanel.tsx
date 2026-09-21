@@ -1,6 +1,6 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { askAssistant, AssistantRateLimitError } from "../api/assistantApi";
+import { askAssistant, AssistantRateLimitError, clearConversation } from "../api/assistantApi";
 
 interface QaEntry {
   question: string;
@@ -14,8 +14,16 @@ interface AssistantPanelProps {
 export function AssistantPanel({ deviceId }: AssistantPanelProps) {
   const [question, setQuestion] = useState("");
   const [history, setHistory] = useState<QaEntry[]>([]);
+  const [conversationId, setConversationId] = useState(() => crypto.randomUUID());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function startNewConversation() {
+    clearConversation(conversationId);
+    setConversationId(crypto.randomUUID());
+    setHistory([]);
+    setError(null);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,7 +33,7 @@ export function AssistantPanel({ deviceId }: AssistantPanelProps) {
     setLoading(true);
     setError(null);
     try {
-      const answer = await askAssistant(trimmed, deviceId);
+      const answer = await askAssistant(trimmed, deviceId, conversationId);
       setHistory((prev) => [...prev, { question: trimmed, answer }]);
       setQuestion("");
     } catch (err) {
@@ -41,11 +49,19 @@ export function AssistantPanel({ deviceId }: AssistantPanelProps) {
 
   return (
     <section className="assistant-panel">
-      <h2>Ask the safety assistant</h2>
+      <div className="assistant-panel__header">
+        <h2>Ask the safety assistant</h2>
+        {history.length > 0 && (
+          <button type="button" onClick={startNewConversation} disabled={loading}>
+            New conversation
+          </button>
+        )}
+      </div>
 
       {history.length === 0 && !loading && (
         <p className="empty-state">
-          Try: "How many harsh braking events has b2A83F1 had today?" or "Is this device driving safely?"
+          Try: "Is this device driving safely?" then follow up with "what about cornering?" — it remembers
+          the conversation.
         </p>
       )}
 
