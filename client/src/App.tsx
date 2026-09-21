@@ -8,6 +8,7 @@ import {
   MapTrifold,
   SignOut,
   SteeringWheel,
+  Trophy,
   WarningCircle,
   type Icon,
 } from "@phosphor-icons/react";
@@ -17,15 +18,17 @@ import { TripMap } from "./components/TripMap";
 import { AssistantPanel } from "./components/AssistantPanel";
 import { ErrorBanner } from "./components/ErrorBanner";
 import { LoginScreen } from "./components/LoginScreen";
+import { Leaderboard } from "./components/Leaderboard";
 import {
   getHarshAccelerationCount,
   getHarshBrakingCount,
   getHarshCorneringCount,
+  getLeaderboard,
   getRecentRecords,
   ingestRecord,
 } from "./api/telematicsApi";
 import { clearToken, getToken, SessionExpiredError } from "./api/authToken";
-import type { TelematicsRecord } from "./types/telematics";
+import type { LeaderboardEntry, TelematicsRecord } from "./types/telematics";
 
 const BASE_LATITUDE = 43.685;
 const BASE_LONGITUDE = -79.345;
@@ -44,7 +47,13 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  // Synchronous guard, checked before any state update. The `disabled={sending}` attribute
+  // alone isn't enough -- it only takes effect after React re-renders, and rapid clicks can
+  // queue up faster than that, each one slipping through before the button visually disables.
+  const sendingRef = useRef(false);
   const [authed, setAuthed] = useState(() => !!getToken());
+  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardAvailable, setLeaderboardAvailable] = useState(true);
 
   const handleSessionExpired = useCallback(() => {
     clearToken();
@@ -52,11 +61,13 @@ function App() {
   }, []);
 
   const overviewRef = useRef<HTMLElement>(null);
+  const leaderboardRef = useRef<HTMLElement>(null);
   const mapRef = useRef<HTMLElement>(null);
   const assistantRef = useRef<HTMLElement>(null);
 
   const sections: { ref: React.RefObject<HTMLElement | null>; icon: Icon; label: string }[] = [
     { ref: overviewRef, icon: Gauge, label: "Overview" },
+    { ref: leaderboardRef, icon: Trophy, label: "Safety leaderboard" },
     { ref: mapRef, icon: MapTrifold, label: "Map & trips" },
     { ref: assistantRef, icon: ChatCircleDots, label: "Safety assistant" },
   ];
@@ -93,7 +104,32 @@ function App() {
     return () => clearInterval(intervalId);
   }, [refresh, authed]);
 
+  const refreshLeaderboard = useCallback(async () => {
+    try {
+      const { available, entries } = await getLeaderboard(10);
+      setLeaderboardAvailable(available);
+      setLeaderboardEntries(entries);
+    } catch (err) {
+      if (err instanceof SessionExpiredError) {
+        handleSessionExpired();
+      }
+      // A leaderboard fetch failure otherwise isn't surfaced as a page-level error --
+      // it's a secondary panel, and the main refresh() already reports connectivity issues.
+    }
+  }, [handleSessionExpired]);
+
+  // Fleet-wide, not scoped to the selected device, so this doesn't depend on deviceId
+  // and shouldn't re-fetch every time someone looks up a different device.
+  useEffect(() => {
+    if (!authed) return;
+    refreshLeaderboard();
+    const intervalId = setInterval(refreshLeaderboard, 5000);
+    return () => clearInterval(intervalId);
+  }, [refreshLeaderboard, authed]);
+
   async function sendTestReading(kind: "normal" | "harsh-braking" | "harsh-cornering" | "harsh-acceleration") {
+    if (sendingRef.current) return;
+    sendingRef.current = true;
     setSending(true);
     setError(null);
     try {
@@ -119,6 +155,7 @@ function App() {
       }
       setError("Failed to send the test reading.");
     } finally {
+      sendingRef.current = false;
       setSending(false);
     }
   }
@@ -189,6 +226,12 @@ function App() {
 
         {error && <ErrorBanner message={error} />}
 
+        <p className="scope-note">
+          Showing data for <code>{deviceId}</code> only — the readings, stats, map and table below all
+          scope to this one device. Look up a different device above to switch. The leaderboard further
+          down is the only section that spans every device.
+        </p>
+
         <section className="stat-row">
           <StatCard label="Readings loaded" value={records.length} icon={Gauge} />
           <StatCard
@@ -230,6 +273,8 @@ function App() {
             Refresh
           </button>
         </section>
+
+        <Leaderboard entries={leaderboardEntries} available={leaderboardAvailable} ref={leaderboardRef} />
 
         <section className="dashboard__main" ref={mapRef}>
           <TripMap records={records} />

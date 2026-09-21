@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from openai import APIStatusError
 from pydantic import BaseModel
 
 from app.assistant import ask
@@ -59,6 +60,17 @@ async def ask_endpoint(request: AskRequest, auth_token: str = Depends(get_bearer
             history=history,
             auth_token=auth_token,
         )
+    except APIStatusError as exc:
+        # 503 is Gemini's own "temporarily overloaded" response -- common on the free
+        # tier -- and worth a plain-language message instead of the raw SDK repr.
+        # Other status codes (e.g. 429) keep the raw detail: the frontend pattern-matches
+        # the string "429" in it to tell Gemini's own rate limit apart from other failures.
+        if exc.status_code == 503:
+            raise HTTPException(
+                status_code=502,
+                detail="The assistant model is temporarily overloaded (Gemini is at capacity). Please try again in a moment.",
+            ) from exc
+        raise HTTPException(status_code=502, detail=f"Assistant failed: {exc}") from exc
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Assistant failed: {exc}") from exc
 

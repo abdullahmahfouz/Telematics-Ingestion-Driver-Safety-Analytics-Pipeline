@@ -3,10 +3,18 @@
   min-height: 100svh;
 }
 
-/* ---- Sidebar: real section anchors on this single-page dashboard, not fake nav ---- */
+/* ---- Sidebar: real section anchors on this single-page dashboard, not fake nav ----
+   position: sticky + align-self: flex-start keeps it pinned to the viewport. Without
+   these, flexbox's default align-items: stretch stretches the sidebar to match the
+   full (tall, scrollable) height of .dashboard, so its icons -- only ever rendered at
+   the top -- scroll out of reach the moment the page is taller than one screen. */
 .sidebar {
   width: 64px;
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100svh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -361,7 +369,7 @@ button:disabled {
   padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   scroll-margin-top: 24px;
 }
 
@@ -381,39 +389,74 @@ button:disabled {
   color: var(--accent);
 }
 
+/* ---- Empty state: suggested-question chips instead of instructional prose ---- */
+.assistant-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 0 20px;
+}
+
+.assistant-suggestions__label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.assistant-suggestions__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.assistant-suggestions__chips button {
+  border-radius: 9999px;
+  font-size: 12px;
+  padding: 7px 14px;
+}
+
 .assistant-history {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  max-height: 320px;
+  gap: 20px;
+  max-height: 360px;
   overflow-y: auto;
 }
 
 .assistant-entry {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
+/* A small accent tick + uppercase label instead of a chat bubble -- keeps the one
+   locked amber accent rather than introducing a second "message" color. */
 .assistant-entry__question {
-  align-self: flex-end;
-  background: var(--info-bg);
-  color: var(--info-text);
-  padding: 8px 14px;
-  border-radius: 10px 10px 2px 10px;
-  font-size: 13px;
-  max-width: 80%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.assistant-entry__question::before {
+  content: "";
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--accent);
+  flex-shrink: 0;
 }
 
 .assistant-entry__answer {
-  align-self: flex-start;
   background: var(--surface-muted);
   border: 1px solid var(--border);
+  border-radius: 10px;
   color: var(--text);
-  padding: 10px 14px;
-  border-radius: 10px 10px 10px 2px;
+  padding: 14px 16px;
   font-size: 13px;
-  max-width: 80%;
 }
 
 .assistant-entry__answer p {
@@ -444,12 +487,52 @@ button:disabled {
   margin-bottom: 2px;
 }
 
-.assistant-entry__answer--pending {
-  color: var(--text-secondary);
-  font-style: italic;
-  background: none;
-  border: none;
-  padding: 0;
+/* ---- Loading state: animated pulse, not a plain "Thinking..." label ---- */
+.assistant-thinking {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  padding: 14px 16px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.assistant-thinking span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: assistant-thinking-pulse 1.2s ease-in-out infinite;
+}
+
+.assistant-thinking span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.assistant-thinking span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes assistant-thinking-pulse {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-thinking span {
+    animation: none;
+    opacity: 0.6;
+  }
 }
 
 .assistant-form {
@@ -457,14 +540,42 @@ button:disabled {
   gap: 8px;
 }
 
-.assistant-form input {
+/* ---- Inline send button embedded in the input, not a separate pill button ---- */
+.assistant-form__input-wrap {
+  position: relative;
+  display: flex;
   flex: 1;
-  padding: 8px 14px;
-  border-radius: 8px;
+}
+
+.assistant-form__input-wrap input {
+  flex: 1;
+  height: 40px;
+  padding: 0 44px 0 14px;
+  border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-h);
   font-size: 13px;
+}
+
+.assistant-form__input-wrap button {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 8px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.assistant-form__input-wrap button:disabled {
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  opacity: 1;
 }
 
 .sidebar__item--logout {
@@ -563,4 +674,93 @@ button:disabled {
 .login-card__hint code {
   font-family: var(--font-mono);
   color: var(--text);
+}
+
+.leaderboard {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scroll-margin-top: 24px;
+}
+
+.leaderboard h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  margin: 0;
+  color: var(--accent);
+}
+
+.leaderboard__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.leaderboard__row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.leaderboard__row--top1 {
+  background: var(--accent-bg);
+}
+
+.leaderboard__rank {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.leaderboard__row--top1 .leaderboard__rank {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.leaderboard__device {
+  font-family: var(--font-mono);
+  color: var(--text-h);
+  font-size: 13px;
+}
+
+.leaderboard__count {
+  font-family: var(--font-mono);
+  color: var(--danger-text);
+  font-weight: 500;
+}
+
+.scope-note {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: -8px;
+}
+
+.scope-note code {
+  color: var(--text-h);
+}
+
+.leaderboard__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.leaderboard__scope {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
