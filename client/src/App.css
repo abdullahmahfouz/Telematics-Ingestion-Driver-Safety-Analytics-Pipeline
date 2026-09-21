@@ -112,11 +112,6 @@
   background: currentColor;
 }
 
-.status-pill--live {
-  color: var(--success-text);
-  background: var(--success-bg);
-}
-
 .status-pill--offline {
   color: var(--danger-text);
   background: var(--danger-bg);

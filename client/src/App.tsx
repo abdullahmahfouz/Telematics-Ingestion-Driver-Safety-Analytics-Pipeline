@@ -102,10 +102,12 @@ function App() {
         <header className="dashboard__header">
           <div className="dashboard__title">
             <h1>Driver safety dashboard</h1>
-            <span className={`status-pill ${error ? "status-pill--offline" : "status-pill--live"}`}>
-              <span className="status-pill__dot" />
-              {error ? "Disconnected" : "Live"}
-            </span>
+            {error && (
+              <span className="status-pill status-pill--offline">
+                <span className="status-pill__dot" />
+                Disconnected
+              </span>
+            )}
           </div>
           <form
             className="device-lookup"
