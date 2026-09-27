@@ -42,9 +42,11 @@ public sealed class TelematicsController(
         db.TelematicsRecords.Add(record);
         await db.SaveChangesAsync();
 
+        var safeDeviceIdForLog = record.DeviceId.Replace("\r", string.Empty).Replace("\n", string.Empty);
+
         logger.LogInformation(
             "Ingested {DeviceId} @ {Timestamp:O}: {SpeedKmh} km/h, idling={IsIdling} (row id {Id})",
-            record.DeviceId, record.Timestamp, record.SpeedKmh, record.IsIdling, record.Id);
+            safeDeviceIdForLog, record.Timestamp, record.SpeedKmh, record.IsIdling, record.Id);
 
         var harshEvents = 0;
 
@@ -53,7 +55,7 @@ public sealed class TelematicsController(
             harshEvents++;
             logger.LogWarning(
                 "Harsh braking detected for {DeviceId} @ {Timestamp:O}: {AccelerationXG}g",
-                record.DeviceId, record.Timestamp, record.AccelerationXG);
+                safeDeviceIdForLog, record.Timestamp, record.AccelerationXG);
         }
 
         if (HarshCorneringDetector.IsHarshCornering(record))
@@ -61,7 +63,7 @@ public sealed class TelematicsController(
             harshEvents++;
             logger.LogWarning(
                 "Harsh cornering detected for {DeviceId} @ {Timestamp:O}: {AccelerationYG}g",
-                record.DeviceId, record.Timestamp, record.AccelerationYG);
+                safeDeviceIdForLog, record.Timestamp, record.AccelerationYG);
         }
 
         if (HarshAccelerationDetector.IsHarshAcceleration(record))
@@ -69,7 +71,7 @@ public sealed class TelematicsController(
             harshEvents++;
             logger.LogWarning(
                 "Harsh acceleration detected for {DeviceId} @ {Timestamp:O}: {AccelerationXG}g",
-                record.DeviceId, record.Timestamp, record.AccelerationXG);
+                safeDeviceIdForLog, record.Timestamp, record.AccelerationXG);
         }
 
         // Deliberately after SaveChangesAsync: the row is already durable in Postgres, so a
