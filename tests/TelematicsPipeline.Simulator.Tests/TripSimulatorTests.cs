@@ -17,17 +17,33 @@ public class TripSimulatorTests
     private const double HarshCorneringThresholdG = 0.45;
 
     private static List<SimulatedReading> Run(IReadOnlyList<TripPhase> phases) =>
-        new TripSimulator(Route.DonValleyParkway(), phases, "TEST-DEVICE", seed: 1)
+        Run(phases, Route.DonValleyParkway());
+
+    private static List<SimulatedReading> Run(IReadOnlyList<TripPhase> phases, Route route) =>
+        new TripSimulator(route, phases, "TEST-DEVICE", seed: 1)
             .Run(DateTimeOffset.UtcNow)
             .ToList();
 
     private static bool IsHarshPhase(PhaseKind kind) =>
         kind is PhaseKind.HarshBraking or PhaseKind.HarshAcceleration or PhaseKind.HarshCornering;
 
-    [Fact]
-    public void NormalDrivingNeverCrossesTheHarshThresholds()
+    /// <summary>
+    /// Every named route Route.ForDevice can hand out, so a bug that only shows up on one
+    /// route's real curvature (like the interchange-ramp bug this guards against) can't
+    /// slip through just because the one route a test happens to use is clean.
+    /// </summary>
+    public static IEnumerable<object[]> AllRoutes()
     {
-        var readings = Run(TripScript.RushHourCommute()).Where(r => !IsHarshPhase(r.Phase)).ToList();
+        yield return [Route.DonValleyParkway()];
+        yield return [Route.GardinerExpressway()];
+        yield return [Route.AllenRoad()];
+    }
+
+    [Theory]
+    [MemberData(nameof(AllRoutes))]
+    public void NormalDrivingNeverCrossesTheHarshThresholds(Route route)
+    {
+        var readings = Run(TripScript.RushHourCommute(), route).Where(r => !IsHarshPhase(r.Phase)).ToList();
 
         Assert.NotEmpty(readings);
         Assert.All(readings, r =>

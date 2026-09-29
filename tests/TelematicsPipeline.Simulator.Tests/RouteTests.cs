@@ -56,14 +56,23 @@ public class RouteTests
         Assert.True(Route.DistanceMetres(start, quarter) < Route.DistanceMetres(start, end));
     }
 
-    [Fact]
-    public void HeadingChangesGraduallyRatherThanJumpingAtWaypoints()
+    public static IEnumerable<object[]> AllNamedRoutes()
+    {
+        yield return [Route.DonValleyParkway()];
+        yield return [Route.GardinerExpressway()];
+        yield return [Route.AllenRoad()];
+    }
+
+    [Theory]
+    [MemberData(nameof(AllNamedRoutes))]
+    public void HeadingChangesGraduallyRatherThanJumpingAtWaypoints(Route route)
     {
         // Guards the look-ahead heading fix. Taking the current segment's bearing made
         // heading constant within a segment and snap at each waypoint -- the yaw rate was
         // zero almost everywhere and spiked at the seams, so curves reported no lateral G.
-        // The real invariant is that no single step turns the vehicle sharply.
-        var route = Route.DonValleyParkway();
+        // The real invariant is that no single step turns the vehicle sharply. Runs against
+        // every named route, not just one -- each was fetched from a real road and could in
+        // principle carry its own GPS-digitization kink.
         var previous = route.PositionAt(0).HeadingDegrees;
         var largestStep = 0.0;
 
@@ -77,6 +86,30 @@ public class RouteTests
 
         Assert.True(largestStep > 0.01, "heading never changed at all -- curves would produce no lateral force");
         Assert.True(largestStep < 5, $"heading snapped {largestStep:F1} degrees in 5 metres, which is a jump, not a curve");
+    }
+
+    [Fact]
+    public void ForDevice_IsDeterministic()
+    {
+        // Same device ID must always resolve to the same route -- otherwise re-running the
+        // simulator for one device would silently redraw a different trail each time.
+        var first = Route.ForDevice("FLEET-101");
+        var second = Route.ForDevice("FLEET-101");
+
+        Assert.Equal(first.PositionAt(0).Position, second.PositionAt(0).Position);
+        Assert.Equal(first.TotalMetres, second.TotalMetres);
+    }
+
+    [Fact]
+    public void ForDevice_GivesDifferentDevicesVisiblyDifferentRoutes()
+    {
+        // The whole point: a fleet of devices shouldn't all retrace the exact same trail.
+        var routes = new[] { "b2A83F1", "FLEET-101", "FLEET-102", "FLEET-103", "SIM-01", "SIM-02" }
+            .Select(id => Route.ForDevice(id).PositionAt(0).Position)
+            .Distinct()
+            .Count();
+
+        Assert.True(routes > 1, "every device resolved to the same route's starting point");
     }
 
     [Fact]
