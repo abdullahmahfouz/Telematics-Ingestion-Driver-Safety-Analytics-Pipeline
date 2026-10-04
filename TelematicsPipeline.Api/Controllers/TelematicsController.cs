@@ -41,14 +41,11 @@ public sealed class TelematicsController(
 
         db.TelematicsRecords.Add(record);
         await db.SaveChangesAsync();
-
-        var safeDeviceId = record.DeviceId
-            .Replace("\r", string.Empty, StringComparison.Ordinal)
-            .Replace("\n", string.Empty, StringComparison.Ordinal);
+        var deviceIdForLog = SanitizeForLog(record.DeviceId);
 
         logger.LogInformation(
             "Ingested {DeviceId} @ {Timestamp:O}: {SpeedKmh} km/h, idling={IsIdling} (row id {Id})",
-            safeDeviceId, record.Timestamp, record.SpeedKmh, record.IsIdling, record.Id);
+            deviceIdForLog, record.Timestamp, record.SpeedKmh, record.IsIdling, record.Id);
 
         var harshEvents = 0;
 
@@ -57,7 +54,7 @@ public sealed class TelematicsController(
             harshEvents++;
             logger.LogWarning(
                 "Harsh braking detected for {DeviceId} @ {Timestamp:O}: {AccelerationXG}g",
-                safeDeviceId, record.Timestamp, record.AccelerationXG);
+                deviceIdForLog, record.Timestamp, record.AccelerationXG);
         }
 
         if (HarshCorneringDetector.IsHarshCornering(record))
@@ -65,7 +62,7 @@ public sealed class TelematicsController(
             harshEvents++;
             logger.LogWarning(
                 "Harsh cornering detected for {DeviceId} @ {Timestamp:O}: {AccelerationYG}g",
-                safeDeviceId, record.Timestamp, record.AccelerationYG);
+                deviceIdForLog, record.Timestamp, record.AccelerationYG);
         }
 
         if (HarshAccelerationDetector.IsHarshAcceleration(record))
@@ -73,7 +70,7 @@ public sealed class TelematicsController(
             harshEvents++;
             logger.LogWarning(
                 "Harsh acceleration detected for {DeviceId} @ {Timestamp:O}: {AccelerationXG}g",
-                safeDeviceId, record.Timestamp, record.AccelerationXG);
+                deviceIdForLog, record.Timestamp, record.AccelerationXG);
         }
 
         // Deliberately after SaveChangesAsync: the row is already durable in Postgres, so a
@@ -82,6 +79,10 @@ public sealed class TelematicsController(
 
         return Accepted(record);
     }
+
+    private static string SanitizeForLog(string value) =>
+        value.Replace("\r", string.Empty, StringComparison.Ordinal)
+            .Replace("\n", string.Empty, StringComparison.Ordinal);
 
     /// <summary>
     /// Distinct device IDs that have ever sent a reading, most-recently-active first -- lets
