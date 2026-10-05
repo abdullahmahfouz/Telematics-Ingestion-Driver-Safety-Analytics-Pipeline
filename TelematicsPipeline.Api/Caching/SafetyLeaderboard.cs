@@ -36,7 +36,8 @@ public sealed class SafetyLeaderboard(IConnectionMultiplexer? redis, ILogger<Saf
         }
         catch (RedisException ex)
         {
-            logger.LogWarning(ex, "Leaderboard update skipped for {DeviceId} -- Redis unavailable", deviceId);
+            var sanitizedDeviceId = deviceId.Replace("\r", string.Empty).Replace("\n", string.Empty);
+            logger.LogWarning(ex, "Leaderboard update skipped for {DeviceId} -- Redis unavailable", sanitizedDeviceId);
             return null;
         }
     }
