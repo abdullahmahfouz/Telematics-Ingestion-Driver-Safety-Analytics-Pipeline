@@ -14,7 +14,7 @@ if (!dryRun && string.IsNullOrWhiteSpace(apiKey))
     return 1;
 }
 
-var route = Route.DonValleyParkway();
+var route = Route.ForDevice(deviceId);
 var phases = TripScript.RushHourCommute();
 var simulator = new TripSimulator(route, phases, deviceId, seed: 42);
 
