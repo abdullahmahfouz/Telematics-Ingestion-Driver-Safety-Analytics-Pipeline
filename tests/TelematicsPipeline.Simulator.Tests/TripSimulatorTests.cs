@@ -37,6 +37,7 @@ public class TripSimulatorTests
         yield return [Route.DonValleyParkway()];
         yield return [Route.GardinerExpressway()];
         yield return [Route.AllenRoad()];
+        yield return [Route.Highway404()];
     }
 
     [Theory]

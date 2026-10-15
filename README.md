@@ -1,6 +1,6 @@
 # Telematics Ingestion & Driver Safety Analytics Pipeline
 
-A three-service telematics platform that ingests live vehicle data, detects harsh-driving events in real time, and lets you ask an AI assistant about a fleet's safety record in plain English.
+A five-service telematics platform that ingests live vehicle data, detects harsh-driving events in real time, and lets you ask an AI assistant about a fleet's safety record in plain English.
 
 It's a portfolio project built to demonstrate the kind of engineering a fleet-telematics company (e.g. Geotab) actually does: per-device event ingestion, real-time safety scoring against physically-grounded thresholds, and serving that data through fast, authenticated, well-tested APIs. It is not yet load-tested or built for high-throughput ingestion — see [Trade-offs / next steps](#trade-offs--next-steps).
 
@@ -24,10 +24,10 @@ It's a portfolio project built to demonstrate the kind of engineering a fleet-te
 ## Why this project
 
 - **Safety thresholds aren't guessed.** Harsh braking (`-0.4g`), cornering (`±0.45g`), and acceleration (`0.35g`) all match the example thresholds in Geotab's own MyGeotab Rule Conditions documentation.
-- **The demo data is physically real, not random.** The included trip simulator derives every G-force reading from actual speed deltas and yaw rate along a real route, not hardcoded noise — a dry run predicts exactly how many harsh events the API should detect, and it does.
+- **The demo data is physically real, not random.** The included trip simulator derives every G-force reading from actual speed deltas and yaw rate along real Toronto roads (Don Valley Parkway, Gardiner Expressway, Allen Road, Highway 404), not hardcoded noise — a dry run predicts exactly how many harsh events the API should detect, and it does.
 - **Every layer is authenticated.** Dashboard operators log in with a password (JWT, rate-limited per source IP); devices authenticate with a per-device API key that can only post under its own device ID. Authentication is not yet the same thing as per-user data isolation — see [Trade-offs / next steps](#trade-offs--next-steps).
 - **The Redis leaderboard is self-healing.** It's a derived view over Postgres, not a second source of truth: on every API startup it's rebuilt from a fresh Postgres aggregate, so a Redis restart or an outage mid-ingest can't leave it permanently wrong. It's exposed via the API; the dashboard itself shows per-device stats rather than a cross-fleet ranking.
-- **123 automated tests**, including tests that run against real PostgreSQL and Redis instances rather than mocks, specifically to catch bugs a mock would hide.
+- **135 automated tests**, including tests that run against real PostgreSQL and Redis instances rather than mocks, specifically to catch bugs a mock would hide.
 
 ## Architecture
 
@@ -53,7 +53,7 @@ Everything above runs with one `docker compose up` — see [Docker Compose](#the
 - **Auth** — JWT login for humans (rate-limited against brute-forcing), scoped API keys for devices, both accepted on ingestion
 - **AI safety assistant** — natural-language Q&A over real fleet data via Gemini function calling, with multi-turn conversation memory and its own rate limiter
 - **React + TypeScript dashboard** — a live Mapbox trail color-coded by safety event, auto-polling stats, a picker showing every device that actually has data (no guessing IDs), and the assistant pinned alongside it
-- **A realistic trip simulator** — generates a scripted drive with known, predictable harsh events instead of relying on manually clicking test buttons
+- **A realistic trip simulator** — generates a scripted drive with known, predictable harsh events over one of four real, physics-validated Toronto routes, instead of relying on manually clicking test buttons
 - **One-command local stack** — `docker compose up` builds and runs all five services together, migrated and seeded automatically
 
 ## Prerequisites
@@ -158,7 +158,19 @@ Open `http://localhost:5173` and log in with the demo credentials from step 2.
 ```bash
 cd TelematicsPipeline.Simulator
 dotnet run -- --dry-run          # preview without sending anything
-dotnet run -- --device b2A83F1   # actually POST the trip to the running API
+dotnet run -- --device b2A83F1 --api-key <key>   # actually POST the trip to the running API
+```
+
+Each device is assigned one of four routes by a hash of its ID, so the same device always
+drives the same road. Hashing can't guarantee that two particular devices differ, so to give
+a fleet four distinct trails pick the road explicitly with `--route`
+(`dvp`, `gardiner`, `allen` or `404`):
+
+```bash
+dotnet run -- --device FLEET-101 --route allen --api-key <key>
+dotnet run -- --device FLEET-102 --route dvp --api-key <key>
+dotnet run -- --device FLEET-103 --route gardiner --api-key <key>
+dotnet run -- --device b2A83F1 --route 404 --api-key <key>
 ```
 
 ## Usage
@@ -212,7 +224,7 @@ of it comes from one root-level `.env` (see `.env.example`) instead.
 ## Development & testing
 
 ```bash
-# All .NET tests (API + simulator) — 86 tests, includes real Postgres/Redis integration tests
+# All .NET tests (API + simulator) — 98 tests, includes real Postgres/Redis integration tests
 dotnet test
 
 # Frontend tests — 37 tests

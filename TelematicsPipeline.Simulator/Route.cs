@@ -120,10 +120,14 @@ public sealed class Route
     /// different paths on the map instead of every simulated vehicle retracing the exact
     /// same trail. Uses a hand-rolled hash rather than string.GetHashCode(), which .NET
     /// randomizes per-process by design and would make the mapping change between runs.
+    ///
+    /// A hash can't promise that any two particular devices land on different routes (with
+    /// four routes, some pair of five devices must collide). When a fleet needs distinct
+    /// trails, pick them explicitly with <see cref="ByName"/> / the simulator's --route flag.
     /// </summary>
     public static Route ForDevice(string deviceId)
     {
-        Route[] routes = [DonValleyParkway(), GardinerExpressway(), AllenRoad()];
+        Route[] routes = [DonValleyParkway(), GardinerExpressway(), AllenRoad(), Highway404()];
 
         var hash = 0;
         foreach (var c in deviceId)
@@ -133,6 +137,19 @@ public sealed class Route
 
         return routes[Math.Abs(hash) % routes.Length];
     }
+
+    /// <summary>Route names accepted by <see cref="ByName"/>, for the simulator's --route flag.</summary>
+    public static readonly IReadOnlyList<string> Names = ["dvp", "gardiner", "allen", "404"];
+
+    /// <summary>The named route, or null if the name isn't one of <see cref="Names"/>.</summary>
+    public static Route? ByName(string name) => name.ToLowerInvariant() switch
+    {
+        "dvp" => DonValleyParkway(),
+        "gardiner" => GardinerExpressway(),
+        "allen" => AllenRoad(),
+        "404" => Highway404(),
+        _ => null,
+    };
 
     /// <summary>
     /// Southbound along a real mainline stretch of the Don Valley Parkway in Toronto --
@@ -306,5 +323,43 @@ public sealed class Route
         new GeoPoint(43.741094, -79.423898),
         new GeoPoint(43.741093, -79.423625),
         new GeoPoint(43.741105, -79.423390),
+    ]);
+
+    /// <summary>Northbound along a real mainline stretch of Highway 404 in Toronto, validated
+    /// the same way as <see cref="DonValleyParkway"/>.</summary>
+    public static Route Highway404() => new(
+    [
+        new GeoPoint(43.765673, -79.338646),
+        new GeoPoint(43.765725, -79.338415),
+        new GeoPoint(43.765817, -79.338178),
+        new GeoPoint(43.765892, -79.338055),
+        new GeoPoint(43.765979, -79.337932),
+        new GeoPoint(43.766085, -79.337807),
+        new GeoPoint(43.766167, -79.337726),
+        new GeoPoint(43.766252, -79.337659),
+        new GeoPoint(43.766341, -79.337605),
+        new GeoPoint(43.766407, -79.337572),
+        new GeoPoint(43.766499, -79.337541),
+        new GeoPoint(43.766601, -79.337520),
+        new GeoPoint(43.766684, -79.337512),
+        new GeoPoint(43.766771, -79.337508),
+        new GeoPoint(43.766891, -79.337508),
+        new GeoPoint(43.767637, -79.337564),
+        new GeoPoint(43.768350, -79.337694),
+        new GeoPoint(43.769124, -79.337952),
+        new GeoPoint(43.769486, -79.338082),
+        new GeoPoint(43.770061, -79.338309),
+        new GeoPoint(43.770772, -79.338528),
+        new GeoPoint(43.771502, -79.338689),
+        new GeoPoint(43.772633, -79.338939),
+        new GeoPoint(43.773892, -79.339223),
+        new GeoPoint(43.775216, -79.339487),
+        new GeoPoint(43.776413, -79.339690),
+        new GeoPoint(43.777600, -79.339847),
+        new GeoPoint(43.778864, -79.340027),
+        new GeoPoint(43.779224, -79.340021),
+        new GeoPoint(43.780507, -79.340236),
+        new GeoPoint(43.781389, -79.340421),
+        new GeoPoint(43.783174, -79.340847),
     ]);
 }

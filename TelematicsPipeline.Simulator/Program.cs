@@ -14,7 +14,14 @@ if (!dryRun && string.IsNullOrWhiteSpace(apiKey))
     return 1;
 }
 
-var route = Route.ForDevice(deviceId);
+var routeName = GetOption("--route");
+var route = routeName is null ? Route.ForDevice(deviceId) : Route.ByName(routeName);
+if (route is null)
+{
+    Console.WriteLine($"error: unknown --route '{routeName}'. Choose one of: {string.Join(", ", Route.Names)}");
+    return 1;
+}
+
 var phases = TripScript.RushHourCommute();
 var simulator = new TripSimulator(route, phases, deviceId, seed: 42);
 

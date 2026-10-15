@@ -61,6 +61,7 @@ public class RouteTests
         yield return [Route.DonValleyParkway()];
         yield return [Route.GardinerExpressway()];
         yield return [Route.AllenRoad()];
+        yield return [Route.Highway404()];
     }
 
     [Theory]
@@ -110,6 +111,31 @@ public class RouteTests
             .Count();
 
         Assert.True(routes > 1, "every device resolved to the same route's starting point");
+    }
+
+    [Fact]
+    public void ByName_ResolvesEveryAdvertisedName()
+    {
+        // Route.Names is what the simulator prints when --route is wrong, so every name it
+        // lists must actually resolve.
+        Assert.All(Route.Names, name => Assert.NotNull(Route.ByName(name)));
+    }
+
+    [Fact]
+    public void ByName_IsCaseInsensitiveAndRejectsUnknownNames()
+    {
+        Assert.NotNull(Route.ByName("DVP"));
+        Assert.Null(Route.ByName("autobahn"));
+    }
+
+    [Fact]
+    public void EveryNamedRouteIsADifferentRoad()
+    {
+        // The reason --route exists: a fleet can be given four trails that never overlap.
+        // Starting points alone are enough to tell the corridors apart.
+        var starts = Route.Names.Select(name => Route.ByName(name)!.PositionAt(0).Position).Distinct().Count();
+
+        Assert.Equal(Route.Names.Count, starts);
     }
 
     [Fact]
